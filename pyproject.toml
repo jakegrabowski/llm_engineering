@@ -51,6 +51,7 @@ dependencies = [
     "kokoro>=0.9.4",
     "soundfile>=0.13.1",
     "en-core-web-sm",
+    "gensim>=4.4.0",
 ]
 
 [tool.uv.sources]
