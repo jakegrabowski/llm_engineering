@@ -48,14 +48,9 @@ dependencies = [
     "langchain-ollama>=1.0.0",
     "langchain-anthropic>=1.0.1",
     "langchain-experimental>=0.0.42",
-<<<<<<< HEAD
     "kokoro>=0.9.4",
     "soundfile>=0.13.1",
     "en-core-web-sm",
-=======
-    "groq>=0.33.0",
-    "xgboost>=3.1.1",
->>>>>>> ed0118baf164c34cd7c1a9d7ca7295b57dc19861
 ]
 
 [tool.uv.sources]
