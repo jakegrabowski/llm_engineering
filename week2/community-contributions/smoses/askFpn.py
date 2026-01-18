@@ -12,6 +12,7 @@ import random
 from dotenv import load_dotenv
 from openai import OpenAI
 import gradio as gr
+import sqlite3
 
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
@@ -410,6 +411,44 @@ Note: All responses must include appropriate medical disclaimers and emphasize t
 
 </system>"""
 
+def save_feedback(value,data:gr.LikeData, db_path="feedback.db"):
+    liked = data.liked
+    message = value[0]['content']
+    response = value[1]['content']
+
+    # Can visualize feedback.db with https://tablesviewer.com/sqlite-viewer/
+    # Connect to the database (or create a new one if it doesn't exist)
+    with sqlite3.connect(db_path) as connection:
+        # 2. Create a cursor object
+        cursor = connection.cursor()
+
+        # Create a table (if it doesn't exist)
+        # Using triple quotes allows for a multi-line SQL query
+        create_table_query = '''
+        CREATE TABLE IF NOT EXISTS Feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message TEXT NOT NULL,
+            response TEXT,
+            liked BOOLEAN,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        '''
+        cursor.execute(create_table_query)
+        print("Table 'Feedback' ensured to exist.")
+
+
+
+        # 5. Insert data into the table using placeholders to prevent SQL injection
+        # The '?' are placeholders, and a tuple of values is passed as the second argument
+        insert_query = "INSERT INTO Feedback (message, response, liked) VALUES (?, ?, ?)"
+        cursor.execute(insert_query, (message, response, liked))
+        print(f"Inserted a new feedback entry: {message}")
+
+        # The 'with sqlite3.connect(...) as connection:' block automatically commits
+        # changes upon exiting the block, so an explicit connection.commit() is optional here
+        # but is needed if not using the context manager.
+
+
 def get_references(json_data,root_path="https://fpnotebook.com/"):
     references = []
     for result in json_data:
@@ -454,23 +493,22 @@ def get_example_questions(n_questions=3):
 search_client = GetSearchClient()
 openai_api_key = GetOpenAIKey()
 
-def vote(data: gr.LikeData):
-    if data.liked:
-        print("You upvoted this response: " + data.value["value"])
-    else:
-        print("You downvoted this response: " + data.value["value"])
+def vote(value, data: gr.LikeData):
+    save_feedback(value,data)
 
 
 with gr.Blocks() as interface:
-    chatbot = gr.Chatbot(placeholder="Ask FPnotebook a medical question (prior questions and answers are not remembered)")
-    chatbot.like(vote, None, None)
+    chatbot = gr.Chatbot(placeholder="Ask FPnotebook a medical question (prior questions and answers are not remembered).")  # Please click the like or dislike button (thumbs at the bottom) to provide feedback on the answer.
+    chatbot.like(vote, chatbot, gr.JSON())
     gr.ChatInterface(fn=chat, type="messages",chatbot=chatbot,
         examples=get_example_questions(),
         title="Ask FPNotebook")
 
 
 if __name__ == "__main__":
-    interface.launch(share=False, inbrowser=True, auth=("medical", "gamification"))
+    interface.launch()
 
 
 
+
+# %%
