@@ -3,3 +3,4 @@ requests
 openai
 gradio
 azure-search-documents
+huggingface_hub
