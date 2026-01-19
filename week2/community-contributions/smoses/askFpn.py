@@ -13,13 +13,17 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import gradio as gr
 import sqlite3
+from datetime import datetime
+import re
+from huggingface_hub import HfApi, CommitOperationAdd
 
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 
 search_client = None
 openai_api_key = None
-openai = OpenAI()
+openai=None
+
 MODEL = 'gpt-4.1-mini'
 
 
@@ -411,7 +415,26 @@ Note: All responses must include appropriate medical disclaimers and emphasize t
 
 </system>"""
 
-def save_feedback(value,data:gr.LikeData, db_path="feedback.db"):
+def create_filename(sentence, limit=80):
+    # 1. Convert to lowercase
+    text = sentence.lower()
+    
+    # 2. Replace non-alphanumeric characters (excluding spaces) with empty strings
+    # This cleans up punctuation that might break a filename
+    text = re.sub(r'[^a-z0-9\s]', '', text)
+    
+    # 3. Remove vowels (a, e, i, o, u)
+    text = re.sub(r'[aeiou]', '', text)
+    
+    # 4. Replace spaces with underscores (snake_case)
+    # Handles multiple spaces by treating them as one
+    filename = "_".join(text.split())
+    
+    # 5. Truncate to the character limit
+    return filename[:limit]
+
+
+def save_feedback_toDB(value,data:gr.LikeData, db_path="feedback.db"):
     liked = data.liked
     message = value[0]['content']
     response = value[1]['content']
@@ -447,6 +470,82 @@ def save_feedback(value,data:gr.LikeData, db_path="feedback.db"):
         # The 'with sqlite3.connect(...) as connection:' block automatically commits
         # changes upon exiting the block, so an explicit connection.commit() is optional here
         # but is needed if not using the context manager.
+
+
+
+
+def create_filename(sentence, limit=80):
+    # 1. Convert to lowercase
+    text = sentence.lower()
+    
+    # 2. Replace non-alphanumeric characters (excluding spaces) with empty strings
+    # This cleans up punctuation that might break a filename
+    text = re.sub(r'[^a-z0-9\s]', '', text)
+    
+    # 3. Remove vowels (a, e, i, o, u)
+    text = re.sub(r'[aeiou]', '', text)
+    
+    # 4. Replace spaces with underscores (snake_case)
+    # Handles multiple spaces by treating them as one
+    filename = "_".join(text.split())
+    
+    # 5. Truncate to the character limit
+    return filename[:limit]
+
+
+def UploadFileToHuggingFaceDataset(filename, dataset_repo="sjmoses/persist", folder="askfpn/feedback"):
+    HF_TOKEN_ASK_FPN = os.getenv('HF_TOKEN_ASK_FPN')
+
+    if HF_TOKEN_ASK_FPN:
+        print(f"HF_TOKEN_ASK_FPN API Key exists and begins {HF_TOKEN_ASK_FPN[:4]}")
+    else:
+        print("HF_TOKEN_ASK_FPN API Key not set")
+
+    hf_api = HfApi()
+
+    try:
+        hf_api.upload_file(
+            path_or_fileobj=filename,
+            path_in_repo=f"{folder}/{filename}",
+            repo_id=dataset_repo,
+            repo_type="dataset",
+            token=HF_TOKEN_ASK_FPN,
+            commit_message="Upload feedback file"
+        )
+        print(f"Successfully uploaded {filename} to {dataset_repo}/{folder}/")
+    except Exception as e:
+        print(f"Error uploading file to Hugging Face: {e}")
+    
+    os.remove(filename)  # Clean up local file after upload
+    
+
+def save_feedback_json(value,data:gr.LikeData):
+    liked = data.liked
+    message = value[0]['content']
+    response = value[1]['content']
+
+    json_path = f"{create_filename(message)}.json"
+    feedback_entry = {
+        "message": message,
+        "response": response,
+        "liked": liked,
+        "timestamp": str(datetime.now())
+    }
+
+    # Append the feedback entry to a JSON file
+    try:
+        with open(json_path, 'r') as file:
+            feedback_data = json.load(file)
+    except FileNotFoundError:
+        feedback_data = []
+
+    feedback_data.append(feedback_entry)
+
+    with open(json_path, 'w') as file:
+        json.dump(feedback_data, file, indent=4)
+
+    print(f"Appended feedback entry to {json_path}: {feedback_entry}")
+    return json_path
 
 
 def get_references(json_data,root_path="https://fpnotebook.com/"):
@@ -492,9 +591,11 @@ def get_example_questions(n_questions=3):
 
 search_client = GetSearchClient()
 openai_api_key = GetOpenAIKey()
+openai = OpenAI()
 
 def vote(value, data: gr.LikeData):
-    save_feedback(value,data)
+    filename = save_feedback_json(value,data)
+    UploadFileToHuggingFaceDataset(filename)
 
 
 with gr.Blocks() as interface:
