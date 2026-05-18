@@ -1,90 +1,144 @@
 {
-    "question": "What are the key features that distinguish MI chest pain from other causes?",
-    "references": "\n\n**References from FPnotebook:**\n[Chest Pain](https://fpnotebook.com//CV/Sx/ChstPn.htm)\n[Coronary Risk Stratification of Chest Pain](https://fpnotebook.com//CV/Exam/CrnryRskStrtfctnOfChstPn.htm)\n[Chest Pain in the Elderly](https://fpnotebook.com//CV/Geri/ChstPnInThEldrly.htm)\n[Hip Pain Causes](https://fpnotebook.com//Ortho/Sx/HpPnCs.htm)\n[Bosner Chest Pain Decision Rule](https://fpnotebook.com//CV/Exam/BsnrChstPnDcsnRl.htm)",
-    "models": {
-        "openai/gpt-oss-120b": {
-            "answer": "**Key distinguishing features of myocardial\u2011infarction (MI) chest pain (as outlined on the FPNotebook page)**  \n\nMI pain is classically described as a **\u201ccrushing\u201d or \u201cpressure\u2011like\u201d** sensation that is **more intense than typical angina**, persists **>30\u202fminutes**, and is **not fully relieved by rest, nitroglycerin, or sublingual nitrates (even after three doses)**. The discomfort often **radiates** atypically\u2014most suggestive when it spreads to the **right arm, both arms, shoulder, jaw, neck, upper back, or throat**\u2014and is accompanied by **autonomic signs** such as **profuse diaphoresis, nausea/vomiting, and a profound sense of impending doom**. Unlike musculoskeletal or reflux pain, MI pain **does not vary with respiration or palpation** and is frequently **exertion\u2011related** (onset with activity, relieved only by prompt reperfusion therapy). In **elderly or diabetic patients**, the classic chest\u2011pain description may be absent, with **dyspnea, vague abdominal discomfort, or generalized weakness** serving as atypical but still concerning presentations. Recognizing this constellation\u2014high\u2011intensity, prolonged, non\u2011reversible pain with bilateral\u2011arm/right\u2011arm radiation and autonomic symptoms\u2014helps differentiate MI from other etiologies of chest discomfort.  \n\n*This summary reflects the FPNotebook content authored by Dr. Scott Moses, MD. Clinical decision\u2011making should always incorporate individual patient context, current practice guidelines, and bedside assessment.*",
-            "evals": {
-                "gpt-4.1-mini": {
-                    "accuracy": 5,
-                    "usefulness": 5,
-                    "completeness": 5,
-                    "conciseness": 4,
-                    "clarity": 5,
-                    "total": 24,
-                    "comments": "The answer accurately and thoroughly describes the key features that distinguish myocardial infarction chest pain from other causes, aligning well with authoritative clinical knowledge. It highlights the characteristic quality, intensity, duration, radiation pattern, associated autonomic symptoms, and notes atypical presentations in elderly or diabetic patients, providing a comprehensive clinical picture. The information is highly useful for providers aiming to differentiate MI at the point of care. While the paragraph is somewhat lengthy due to the detailed content, it remains focused and clear without redundancy. The language is precise and structured, facilitating quick comprehension by medical professionals. Overall, this is a strong, clinically relevant, and well-articulated response."
-                }
-            }
-        },
-        "ai21/jamba-large-1.7": {
-            "answer": "To provide an accurate answer, I need to access and analyze the \"Related Information from FPNotebook in JSON.\" Please provide the JSON content directly so I can locate the specific details about MI chest pain distinguishing features. If you cannot provide the JSON, I can attempt to summarize general clinical characteristics based on established medical guidelines, but this would not reflect FPNotebook-specific content.",
-            "evals": {
-                "gpt-4.1-mini": {
-                    "accuracy": 1,
-                    "usefulness": 1,
-                    "completeness": 1,
-                    "conciseness": 3,
-                    "clarity": 2,
-                    "total": 8,
-                    "comments": "The answer does not address the question about key distinguishing features of MI chest pain. Instead, it requests additional data and refuses to provide any medical content, resulting in poor accuracy, usefulness, and completeness. Though the response is relatively concise, it lacks clinical value and clarity for a medical provider seeking actionable information."
-                }
-            }
-        },
-        "amazon/nova-pro-v1": {
-            "answer": "Based on the FPNotebook content, myocardial infarction (MI) chest pain has several distinguishing features:\n\n**Key Characteristics:**\n\n1. **Intensity:** More intense than typical angina, often described as \"crushing\" or \"vice-like.\"\n2. **Duration:** Persistent, usually lasting more than 30 minutes.\n3. **Response to Treatment:** Not fully relieved by rest or nitroglycerin, including 3 consecutive doses.\n\n**Radiation Patterns:**\n\n- Involvement of bilateral arms or right arm radiation.\n- May also involve shoulder, hand, upper back, neck, jaw, or throat.\n\n**Associated Systemic Symptoms:**\n\n- Vomiting (not just nausea)\n- Diaphoresis\n- Sense of apprehension or impending doom\n\n**Clinical Context:**\n\n- Patients may deny \"chest pain\" but admit to chest \"pressure,\" \"tightness,\" or \"discomfort\"\u2014making precise terminology important in history-taking.\n- Perceived pain intensity does not always correlate with disease severity, so systematic evaluation remains essential regardless of symptom description.\n\n**Important Limitation:**\nThis information reflects FPNotebook content and should be used with complete clinical assessment and current diagnostic protocols for accurate diagnosis and management.\n\n**Medical Disclaimer:** The content provided is for educational purposes and should not replace professional clinical judgment or individualized patient care. Always refer to current medical guidelines and consult with healthcare professionals for diagnosis and treatment decisions.",
-            "evals": {
-                "gpt-4.1-mini": {
-                    "accuracy": 5,
-                    "usefulness": 5,
-                    "completeness": 5,
-                    "conciseness": 4,
-                    "clarity": 5,
-                    "total": 24,
-                    "comments": "The response is medically accurate, reflecting established distinguishing features of MI chest pain as noted in FPNotebook, including intensity, duration, radiation, and associated systemic symptoms. It is highly clinically useful for providers differentiating MI from other causes. The answer is complete, covering key aspects without extraneous details, though it could be slightly more concise by integrating related points rather than bulleting them separately. Clarity is excellent, with precise terminology emphasizing the importance of patient description and clinical context. The inclusion of a limitation and disclaimer appropriately frames the educational nature of the content. Overall, the answer is well-structured, clear, and actionable for clinical practice."
-                }
-            }
-        },
-        "meta-llama/llama-3.3-70b-instruct": {
-            "answer": "Based on the FPNotebook content, the key features that distinguish MI chest pain from other causes include: intensity, duration, and response to treatment. Specifically, MI chest pain is often described as crushing, persistent for more than 30 minutes, and not fully relieved by rest or nitroglycerin. Additionally, radiation patterns, such as bilateral arm involvement or right arm radiation, and associated systemic symptoms like vomiting, diaphoresis, and a sense of apprehension, are also characteristic of MI chest pain. It is essential to note that perceived pain intensity does not always correlate with disease severity, making systematic evaluation crucial regardless of symptom description. This information is based on FPNotebook content and should be integrated with complete clinical assessment and current diagnostic protocols, emphasizing the need for clinical judgment and individualized patient care.",
-            "evals": {
-                "gpt-4.1-mini": {
-                    "accuracy": 5,
-                    "usefulness": 4,
-                    "completeness": 4,
-                    "conciseness": 3,
-                    "clarity": 4,
-                    "total": 20,
-                    "comments": "The response is medically accurate, correctly identifying classic features of MI chest pain including intensity, duration, poor response to nitroglycerin or rest, radiation patterns, and associated systemic symptoms. It emphasizes important clinical caveats such as the lack of correlation between pain intensity and severity. While the answer is clinically useful and fairly complete in covering key distinguishing features, it could also briefly differentiate MI chest pain from other causes by mentioning common alternative chest pain etiologies for contrast. The response is somewhat lengthy and redundant in parts, particularly the ending statements about clinical judgment and integration of protocols, which slightly reduces conciseness. Overall, clarity is good and the paragraph is well-structured for ease of understanding."
-                }
-            }
-        },
-        "minimax/minimax-m2.5": {
-            "answer": "Based on the FPNotebook Acute Coronary Syndrome content, MI chest pain has several distinguishing features from other causes:\n\n**Primary Distinguishing Characteristics:**\n\n- **Intensity**: Described as \"crushing\" or more severe than typical angina\n- **Duration**: Persistent >30 minutes (vs. brief episodic angina)\n- **Treatment response**: NOT fully relieved by rest or nitroglycerin, even after 3 consecutive doses\n\n**Radiation Patterns** (particularly significant):\n- Bilateral arm radiation or right arm radiation is more suggestive than left arm alone\n- May also involve shoulder, hand, upper back, neck, jaw, or throat\n\n**Associated Systemic Symptoms:**\n- Vomiting (not just nausea)\n- Diaphoresis (diaphoresis)\n- Sense of apprehension or \"impending doom\"\n\n**Important Clinical Note**: The source emphasizes that many patients deny \"chest pain\" but admit to chest \"pressure,\" \"tightness,\" or \"discomfort\"\u2014making careful terminology in history-taking essential. Additionally, chest pain intensity doesn't always correlate with disease severity, emphasizing the importance of systematic evaluation rather than symptom severity alone.\n\n**Disclaimer**: This information reflects FPNotebook content and should be integrated with complete clinical assessment, diagnostic testing (including troponins and EKG), and current clinical protocols for individualized patient care decisions.",
-            "evals": {
-                "gpt-4.1-mini": {
-                    "accuracy": 5,
-                    "usefulness": 5,
-                    "completeness": 4,
-                    "conciseness": 4,
-                    "clarity": 4,
-                    "total": 22,
-                    "comments": "The response is medically accurate and closely reflects key teaching points from FPNotebook regarding the distinguishing features of MI chest pain. It provides clinically useful, actionable details important for differential diagnosis such as intensity, duration, radiation patterns, systemic symptoms, and nuances in patient symptom description. While comprehensive in content, it could improve slightly on conciseness by integrating the bullet points into a more fluid paragraph, and some phrasing is repetitive (e.g., 'diaphoresis' repeated). Overall, the answer is clear and targeted for clinical application but could benefit from minor refinement in style for maximal clarity and brevity."
-                }
-            }
-        },
-        "moonshotai/kimi-k2-thinking": {
-            "answer": "**Myocardial Ischemia Chest Pain Distinguishing Features (FPNotebook-based)**\n\nMI chest pain is characterized by **crushing substernal pressure** lasting **>30 minutes**, NOT fully relieved by rest or nitroglycerin (even 3 doses), often with radiation to **bilateral arms or right arm** (more specific than left arm alone). Associated systemic findings include profuse diaphoresis, vomiting (not just nausea), and a sense of impending doom. Importantly, 25% of MIs are asymptomatic, and many patients deny \"pain\" but describe \"pressure,\" \"tightness,\" or \"discomfort\"\u2014making precise terminology critical in history-taking. A key clinical caveat: pain intensity does NOT correlate with disease severity, mandating systematic evaluation regardless of symptom description. Elderly and diabetic patients frequently present atypically with dyspnea, syncope, or weakness rather than chest pain.\n\n*This summary reflects FPNotebook's structured clinical reference approach. Always integrate with current guidelines, serial troponins, EKG findings, and individualized clinical judgment.*",
-            "evals": {
-                "gpt-4.1-mini": {
-                    "accuracy": 5,
-                    "usefulness": 5,
-                    "completeness": 4,
-                    "conciseness": 4,
-                    "clarity": 5,
-                    "total": 23,
-                    "comments": "The answer is medically accurate, drawing directly from authoritative FPNotebook content and correctly highlighting key distinguishing features of MI chest pain compared to other causes. It effectively focuses on clinical presentation, symptom quality, duration, radiation patterns, associated systemic signs, and atypical presentations in special populations, which are all critical for differential diagnosis. The inclusion of the note on pain intensity and the importance of terminology enhances clinical usefulness. The response is clear and largely concise, though slightly longer than a single paragraph and with some minor density that may challenge rapid scanning. Overall, it balances completeness and conciseness well, providing a practical and nuanced overview appropriate for medical providers."
-                }
-            }
+  "question": "What are the key features that distinguish MI chest pain from other causes?",
+  "references": "\n\n**References from FPnotebook:**\n[Chest Pain](https://fpnotebook.com//CV/Sx/ChstPn.htm)\n[Coronary Risk Stratification of Chest Pain](https://fpnotebook.com//CV/Exam/CrnryRskStrtfctnOfChstPn.htm)\n[Chest Pain in the Elderly](https://fpnotebook.com//CV/Geri/ChstPnInThEldrly.htm)\n[Hip Pain Causes](https://fpnotebook.com//Ortho/Sx/HpPnCs.htm)\n[Bosner Chest Pain Decision Rule](https://fpnotebook.com//CV/Exam/BsnrChstPnDcsnRl.htm)",
+  "models": {
+    "openai/gpt-oss-120b": {
+      "answer": "**Key distinguishing features of myocardial‑infarction (MI) chest pain (as outlined on the FPNotebook page)**  \n\nMI pain is classically described as a **“crushing” or “pressure‑like”** sensation that is **more intense than typical angina**, persists **>30 minutes**, and is **not fully relieved by rest, nitroglycerin, or sublingual nitrates (even after three doses)**. The discomfort often **radiates** atypically—most suggestive when it spreads to the **right arm, both arms, shoulder, jaw, neck, upper back, or throat**—and is accompanied by **autonomic signs** such as **profuse diaphoresis, nausea/vomiting, and a profound sense of impending doom**. Unlike musculoskeletal or reflux pain, MI pain **does not vary with respiration or palpation** and is frequently **exertion‑related** (onset with activity, relieved only by prompt reperfusion therapy). In **elderly or diabetic patients**, the classic chest‑pain description may be absent, with **dyspnea, vague abdominal discomfort, or generalized weakness** serving as atypical but still concerning presentations. Recognizing this constellation—high‑intensity, prolonged, non‑reversible pain with bilateral‑arm/right‑arm radiation and autonomic symptoms—helps differentiate MI from other etiologies of chest discomfort.  \n\n*This summary reflects the FPNotebook content authored by Dr. Scott Moses, MD. Clinical decision‑making should always incorporate individual patient context, current practice guidelines, and bedside assessment.*",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 4,
+          "clarity": 5,
+          "total": 24,
+          "comments": "The answer accurately and thoroughly describes the key features that distinguish myocardial infarction chest pain from other causes, aligning well with authoritative clinical knowledge. It highlights the characteristic quality, intensity, duration, radiation pattern, associated autonomic symptoms, and notes atypical presentations in elderly or diabetic patients, providing a comprehensive clinical picture. The information is highly useful for providers aiming to differentiate MI at the point of care. While the paragraph is somewhat lengthy due to the detailed content, it remains focused and clear without redundancy. The language is precise and structured, facilitating quick comprehension by medical professionals. Overall, this is a strong, clinically relevant, and well-articulated response."
         }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 5,
+        "completeness": 4,
+        "conciseness": 5,
+        "clarity": 5,
+        "total": 24,
+        "comments": "Overall excellent answer.  My only critique is that there are nuances to chest pain.  Atypical presentations are common - MI despite pleuritic chest pain or pain that is reproduced on chest wall palpation."
+      }
+    },
+    "ai21/jamba-large-1.7": {
+      "answer": "To provide an accurate answer, I need to access and analyze the \"Related Information from FPNotebook in JSON.\" Please provide the JSON content directly so I can locate the specific details about MI chest pain distinguishing features. If you cannot provide the JSON, I can attempt to summarize general clinical characteristics based on established medical guidelines, but this would not reflect FPNotebook-specific content.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 1,
+          "usefulness": 1,
+          "completeness": 1,
+          "conciseness": 3,
+          "clarity": 2,
+          "total": 8,
+          "comments": "The answer does not address the question about key distinguishing features of MI chest pain. Instead, it requests additional data and refuses to provide any medical content, resulting in poor accuracy, usefulness, and completeness. Though the response is relatively concise, it lacks clinical value and clarity for a medical provider seeking actionable information."
+        }
+      },
+      "human_eval": {
+        "accuracy": 1,
+        "usefulness": 1,
+        "completeness": 1,
+        "conciseness": 1,
+        "clarity": 1,
+        "total": 5,
+        "comments": "Complete fail.   This model is unlikely to be useful"
+      }
+    },
+    "amazon/nova-pro-v1": {
+      "answer": "Based on the FPNotebook content, myocardial infarction (MI) chest pain has several distinguishing features:\n\n**Key Characteristics:**\n\n1. **Intensity:** More intense than typical angina, often described as \"crushing\" or \"vice-like.\"\n2. **Duration:** Persistent, usually lasting more than 30 minutes.\n3. **Response to Treatment:** Not fully relieved by rest or nitroglycerin, including 3 consecutive doses.\n\n**Radiation Patterns:**\n\n- Involvement of bilateral arms or right arm radiation.\n- May also involve shoulder, hand, upper back, neck, jaw, or throat.\n\n**Associated Systemic Symptoms:**\n\n- Vomiting (not just nausea)\n- Diaphoresis\n- Sense of apprehension or impending doom\n\n**Clinical Context:**\n\n- Patients may deny \"chest pain\" but admit to chest \"pressure,\" \"tightness,\" or \"discomfort\"—making precise terminology important in history-taking.\n- Perceived pain intensity does not always correlate with disease severity, so systematic evaluation remains essential regardless of symptom description.\n\n**Important Limitation:**\nThis information reflects FPNotebook content and should be used with complete clinical assessment and current diagnostic protocols for accurate diagnosis and management.\n\n**Medical Disclaimer:** The content provided is for educational purposes and should not replace professional clinical judgment or individualized patient care. Always refer to current medical guidelines and consult with healthcare professionals for diagnosis and treatment decisions.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 4,
+          "clarity": 5,
+          "total": 24,
+          "comments": "The response is medically accurate, reflecting established distinguishing features of MI chest pain as noted in FPNotebook, including intensity, duration, radiation, and associated systemic symptoms. It is highly clinically useful for providers differentiating MI from other causes. The answer is complete, covering key aspects without extraneous details, though it could be slightly more concise by integrating related points rather than bulleting them separately. Clarity is excellent, with precise terminology emphasizing the importance of patient description and clinical context. The inclusion of a limitation and disclaimer appropriately frames the educational nature of the content. Overall, the answer is well-structured, clear, and actionable for clinical practice."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 5,
+        "completeness": 4,
+        "conciseness": 3,
+        "clarity": 5,
+        "total": 22,
+        "comments": "An excellent answer, but a  little less concise than the GPT 120 - esp with limitations and disclaimers section.  Better job of chest pain caveats than GPT 120, but did not address the different populations like GPT 120  "
+      }
+    },
+    "meta-llama/llama-3.3-70b-instruct": {
+      "answer": "Based on the FPNotebook content, the key features that distinguish MI chest pain from other causes include: intensity, duration, and response to treatment. Specifically, MI chest pain is often described as crushing, persistent for more than 30 minutes, and not fully relieved by rest or nitroglycerin. Additionally, radiation patterns, such as bilateral arm involvement or right arm radiation, and associated systemic symptoms like vomiting, diaphoresis, and a sense of apprehension, are also characteristic of MI chest pain. It is essential to note that perceived pain intensity does not always correlate with disease severity, making systematic evaluation crucial regardless of symptom description. This information is based on FPNotebook content and should be integrated with complete clinical assessment and current diagnostic protocols, emphasizing the need for clinical judgment and individualized patient care.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 4,
+          "completeness": 4,
+          "conciseness": 3,
+          "clarity": 4,
+          "total": 20,
+          "comments": "The response is medically accurate, correctly identifying classic features of MI chest pain including intensity, duration, poor response to nitroglycerin or rest, radiation patterns, and associated systemic symptoms. It emphasizes important clinical caveats such as the lack of correlation between pain intensity and severity. While the answer is clinically useful and fairly complete in covering key distinguishing features, it could also briefly differentiate MI chest pain from other causes by mentioning common alternative chest pain etiologies for contrast. The response is somewhat lengthy and redundant in parts, particularly the ending statements about clinical judgment and integration of protocols, which slightly reduces conciseness. Overall, clarity is good and the paragraph is well-structured for ease of understanding."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 3,
+        "completeness": 3,
+        "conciseness": 5,
+        "clarity": 3,
+        "total": 19,
+        "comments": "Good answer that is very concise but with less specific information, more generic and less useful than the amazon, and GPT120 answers"
+      }
+    },
+    "minimax/minimax-m2.5": {
+      "answer": "Based on the FPNotebook Acute Coronary Syndrome content, MI chest pain has several distinguishing features from other causes:\n\n**Primary Distinguishing Characteristics:**\n\n- **Intensity**: Described as \"crushing\" or more severe than typical angina\n- **Duration**: Persistent >30 minutes (vs. brief episodic angina)\n- **Treatment response**: NOT fully relieved by rest or nitroglycerin, even after 3 consecutive doses\n\n**Radiation Patterns** (particularly significant):\n- Bilateral arm radiation or right arm radiation is more suggestive than left arm alone\n- May also involve shoulder, hand, upper back, neck, jaw, or throat\n\n**Associated Systemic Symptoms:**\n- Vomiting (not just nausea)\n- Diaphoresis (diaphoresis)\n- Sense of apprehension or \"impending doom\"\n\n**Important Clinical Note**: The source emphasizes that many patients deny \"chest pain\" but admit to chest \"pressure,\" \"tightness,\" or \"discomfort\"—making careful terminology in history-taking essential. Additionally, chest pain intensity doesn't always correlate with disease severity, emphasizing the importance of systematic evaluation rather than symptom severity alone.\n\n**Disclaimer**: This information reflects FPNotebook content and should be integrated with complete clinical assessment, diagnostic testing (including troponins and EKG), and current clinical protocols for individualized patient care decisions.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 4,
+          "conciseness": 4,
+          "clarity": 4,
+          "total": 22,
+          "comments": "The response is medically accurate and closely reflects key teaching points from FPNotebook regarding the distinguishing features of MI chest pain. It provides clinically useful, actionable details important for differential diagnosis such as intensity, duration, radiation patterns, systemic symptoms, and nuances in patient symptom description. While comprehensive in content, it could improve slightly on conciseness by integrating the bullet points into a more fluid paragraph, and some phrasing is repetitive (e.g., 'diaphoresis' repeated). Overall, the answer is clear and targeted for clinical application but could benefit from minor refinement in style for maximal clarity and brevity."
+        }
+      },
+      "human_eval": {
+        "accuracy": 4,
+        "usefulness": 5,
+        "completeness": 5,
+        "conciseness": 4,
+        "clarity": 4,
+        "total": 22,
+        "comments": "Better answer than llama 3.3.  nicely bulleted output, less concise than some answers.   Relatively complete, but did not cover different populations."
+      }
+    },
+    "moonshotai/kimi-k2-thinking": {
+      "answer": "**Myocardial Ischemia Chest Pain Distinguishing Features (FPNotebook-based)**\n\nMI chest pain is characterized by **crushing substernal pressure** lasting **>30 minutes**, NOT fully relieved by rest or nitroglycerin (even 3 doses), often with radiation to **bilateral arms or right arm** (more specific than left arm alone). Associated systemic findings include profuse diaphoresis, vomiting (not just nausea), and a sense of impending doom. Importantly, 25% of MIs are asymptomatic, and many patients deny \"pain\" but describe \"pressure,\" \"tightness,\" or \"discomfort\"—making precise terminology critical in history-taking. A key clinical caveat: pain intensity does NOT correlate with disease severity, mandating systematic evaluation regardless of symptom description. Elderly and diabetic patients frequently present atypically with dyspnea, syncope, or weakness rather than chest pain.\n\n*This summary reflects FPNotebook's structured clinical reference approach. Always integrate with current guidelines, serial troponins, EKG findings, and individualized clinical judgment.*",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 4,
+          "conciseness": 4,
+          "clarity": 5,
+          "total": 23,
+          "comments": "The answer is medically accurate, drawing directly from authoritative FPNotebook content and correctly highlighting key distinguishing features of MI chest pain compared to other causes. It effectively focuses on clinical presentation, symptom quality, duration, radiation patterns, associated systemic signs, and atypical presentations in special populations, which are all critical for differential diagnosis. The inclusion of the note on pain intensity and the importance of terminology enhances clinical usefulness. The response is clear and largely concise, though slightly longer than a single paragraph and with some minor density that may challenge rapid scanning. Overall, it balances completeness and conciseness well, providing a practical and nuanced overview appropriate for medical providers."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 5,
+        "completeness": 5,
+        "conciseness": 5,
+        "clarity": 5,
+        "total": 25,
+        "comments": "This was probably the best answer of the group. concise, expressed caveats and different populations."
+      }
     }
+  }
 }
