@@ -4,3 +4,6 @@ openai
 gradio
 azure-search-documents
 huggingface_hub
+ipykernel
+ipywidgets
+httpx
