@@ -24,3 +24,4 @@ class BdApiRetrieveResponse:
     retrieved_items: List[Dict[str, Any]] = field(default_factory=list)
     prepared_prompt_input: Dict[str, Any] = field(default_factory=dict)
     cost: Dict[str, Any] = field(default_factory=dict)
+    raw_json: Dict[str, Any] = field(default_factory=dict)

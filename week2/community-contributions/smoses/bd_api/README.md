@@ -76,4 +76,6 @@ When calling `client.retrieve.create()`, it returns a `BdApiRetrieveResponse` ob
 - `raw_retrieval_response`: (dict) The raw AWS SDK retrieve response payload.
 - `retrieved_items`: (list) A list of normalized sources retrieved.
 - `prepared_prompt_input`: (dict) Contains variable names and fully prepared `promptVariables` as they would be sent to the prompt.
+  - E.g. `response.prepared_prompt_input["promptVariables"]["context"]` contains the profile-formatted XML context block.
 - `cost`: (dict) Estimated retrieval cost.
+- `raw_json`: (dict) The complete, unparsed JSON payload exactly as returned by the API.

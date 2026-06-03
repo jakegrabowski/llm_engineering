@@ -29,7 +29,8 @@ class _RetrieveEndpoints:
             raw_retrieval_response=data.get("rawRetrievalResponse", {}),
             retrieved_items=data.get("retrievedItems", []),
             prepared_prompt_input=data.get("preparedPromptInput", {}),
-            cost=data.get("cost", {})
+            cost=data.get("cost", {}),
+            raw_json=data
         )
 
 class _AskEndpoints:
@@ -145,7 +146,8 @@ class _AsyncRetrieveEndpoints:
             raw_retrieval_response=data.get("rawRetrievalResponse", {}),
             retrieved_items=data.get("retrievedItems", []),
             prepared_prompt_input=data.get("preparedPromptInput", {}),
-            cost=data.get("cost", {})
+            cost=data.get("cost", {}),
+            raw_json=data
         )
 
 class _AsyncAskEndpoints:
@@ -243,7 +245,7 @@ class BdApiClient:
         if api_key:
             headers["x-api-key"] = api_key
 
-        self._http_client = httpx.Client(headers=headers)
+        self._http_client = httpx.Client(headers=headers, timeout=60.0)
         self.ask = _AskEndpoints(self._http_client, self.base_url)
         self.retrieve = _RetrieveEndpoints(self._http_client, self.base_url)
 
@@ -263,7 +265,7 @@ class AsyncBdApiClient:
         if api_key:
             headers["x-api-key"] = api_key
 
-        self._http_client = httpx.AsyncClient(headers=headers)
+        self._http_client = httpx.AsyncClient(headers=headers, timeout=60.0)
         self.ask = _AsyncAskEndpoints(self._http_client, self.base_url)
         self.retrieve = _AsyncRetrieveEndpoints(self._http_client, self.base_url)
 
