@@ -84,6 +84,32 @@ async def get_answer():
     print("Sources:", response.sources)
 ```
 
+## Using Retrieval Mode
+
+Retrieval mode (`POST /retrieve`) exposes the Knowledge Base retrieval step directly without generating an answer via an LLM. It's useful for previewing how a prompt is going to be prepared.
+
+### Synchronous Retrieval
+
+```python
+response = client.retrieve.create(
+    question="What are the reporting obligations?"
+)
+
+print("Knowledge Base ID:", response.knowledge_base_id)
+print("Retrieved Items:", len(response.retrieved_items))
+print("Prepared Prompt variables:", response.prepared_prompt_input.get("promptVariables"))
+```
+
+### Asynchronous Retrieval
+
+```python
+async def get_retrieval():
+    response = await async_client.retrieve.create(
+        question="What are the reporting obligations?"
+    )
+    print("Cost:", response.cost)
+```
+
 ## Return Types
 
 When `stream=False`, `.create()` returns a `BdApiResponse` object with the following attributes:
@@ -95,3 +121,10 @@ When `stream=False`, `.create()` returns a `BdApiResponse` object with the follo
 - `stop_reason`: (str) E.g., `end_turn`.
 - `persisted_to_s3`: (bool) True if successfully persisted.
 - `answer_id`: (str) The UUID of the request.
+
+When calling `client.retrieve.create()`, it returns a `BdApiRetrieveResponse` object with the following attributes:
+- `knowledge_base_id`: (str) The ID of the knowledge base queried.
+- `raw_retrieval_response`: (dict) The raw AWS SDK retrieve response payload.
+- `retrieved_items`: (list) A list of normalized sources retrieved.
+- `prepared_prompt_input`: (dict) Contains variable names and fully prepared `promptVariables` as they would be sent to the prompt.
+- `cost`: (dict) Estimated retrieval cost.

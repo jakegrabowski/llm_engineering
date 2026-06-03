@@ -95,8 +95,33 @@ def run_sync_examples():
         print("Exception occurred.", e)
 
 
+    # ==========================================
+    # Example 3: Retrieval Mode (Sync)
+    # ==========================================
+    print("\n--- Retrieval Mode (Sync) ---")
+    try:
+        retrieve_response = client.retrieve.create(question=QUESTION)
+
+        # knowledge_base_id is optional
+        # print(f"Knowledge Base ID used: {retrieve_response.knowledge_base_id}")
+        print(f"Total retrieved items: {len(retrieve_response.retrieved_items)}")
+
+        for item in retrieve_response.retrieved_items:
+            print(f"\n- Item {item.get('index')}: Score {item.get('score')}")
+            print(f"  Content: {item.get('text', '')[:150]}...")
+
+        prompt_vars = retrieve_response.prepared_prompt_input.get("promptVariables", {})
+        print(f"\nPrepared Context Variable (Snippet):\n{prompt_vars.get('context', '')[:200]}...\n")
+        print(f"Retrieval Estimated Cost: {retrieve_response.cost.get('retrievalEstimated', {}).get('dollars')} dollars")
+
+    except BdApiRequestError as e:
+        print(f"Retrieve Request failed. HTTP {e.status_code}")
+    except Exception as e:
+        print("Exception occurred.", e)
+
+
 # ==========================================
-# Example 3: Asynchronous Usage
+# Example 4: Asynchronous Usage (Ask & Retrieve)
 # ==========================================
 async def run_async_example():
     print("\n--- Asynchronous Usage (Async) ---")
@@ -120,10 +145,19 @@ async def run_async_example():
         except Exception as e:
             print("Exception occurred in async call.", e)
 
+        print("\n--- Asynchronous Retrieval Mode ---")
+        try:
+            retrieve_response = await async_client.retrieve.create(question=QUESTION)
+            print("Async Retrieved Items:", len(retrieve_response.retrieved_items))
+        except BdApiRequestError as e:
+            print(f"Async Request failed. HTTP {e.status_code}")
+        except Exception as e:
+            print("Exception occurred in async retrieve.", e)
+
 
 if __name__ == "__main__":
     # Run the synchronous examples
     run_sync_examples()
 
     # Run the asynchronous example (requires asyncio.run for normal python execution)
-    asyncio.run(run_async_example())
+    # asyncio.run(run_async_example())

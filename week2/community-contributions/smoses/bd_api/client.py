@@ -1,8 +1,36 @@
 import json
 import httpx
 from typing import Optional, Dict, Any, Generator, AsyncGenerator
-from .types import BdApiEvent, BdApiResponse
+from .types import BdApiEvent, BdApiResponse, BdApiRetrieveResponse
 from .errors import BdApiRequestError, BdApiStreamError
+
+class _RetrieveEndpoints:
+    def __init__(self, client: httpx.Client, base_url: str):
+        self._client = client
+        self._base_url = base_url.rstrip("/")
+
+    def create(
+        self,
+        question: str,
+        knowledge_base_id: Optional[str] = None
+    ) -> BdApiRetrieveResponse:
+        url = f"{self._base_url}/retrieve"
+        payload = {"question": question}
+        if knowledge_base_id:
+            payload["knowledge_base_id"] = knowledge_base_id
+
+        response = self._client.post(url, json=payload)
+        if response.status_code >= 400:
+            raise BdApiRequestError(status_code=response.status_code, response_body=response.text)
+
+        data = response.json()
+        return BdApiRetrieveResponse(
+            knowledge_base_id=data.get("knowledgeBaseId"),
+            raw_retrieval_response=data.get("rawRetrievalResponse", {}),
+            retrieved_items=data.get("retrievedItems", []),
+            prepared_prompt_input=data.get("preparedPromptInput", {}),
+            cost=data.get("cost", {})
+        )
 
 class _AskEndpoints:
     def __init__(self, client: httpx.Client, base_url: str):
@@ -12,29 +40,22 @@ class _AskEndpoints:
     def create(
         self,
         question: str,
-        model_id: Optional[str] = None,
-        system_instructions: Optional[str] = None,
-        user_message: Optional[str] = None,
+        model_id: str,
+        system_instructions: str,
+        user_message: str,
         inference_config: Optional[Dict[str, Any]] = None,
-        prompt_version: Optional[str] = None,
-        prompt_arn: Optional[str] = None,
-        prompt_resolved_model_id: Optional[str] = None,
         knowledge_base_id: Optional[str] = None,
         stream: bool = False
     ):
         url = f"{self._base_url}/ask"
-        payload = {"question": question}
+        payload = {
+            "question": question,
+            "model_id": model_id,
+            "system_instructions": system_instructions,
+            "user_message": user_message
+        }
 
-        # Custom mode fields
-        if model_id: payload["model_id"] = model_id
-        if system_instructions: payload["system_instructions"] = system_instructions
-        if user_message: payload["user_message"] = user_message
         if inference_config: payload["inference_config"] = inference_config
-
-        # Prompt mode / overrides
-        if prompt_version: payload["bedrock_prompt_version"] = prompt_version
-        if prompt_arn: payload["bedrock_prompt_arn"] = prompt_arn
-        if prompt_resolved_model_id: payload["bedrock_prompt_resolved_model_id"] = prompt_resolved_model_id
         if knowledge_base_id: payload["knowledge_base_id"] = knowledge_base_id
 
         if stream:
@@ -100,6 +121,35 @@ class _AskEndpoints:
             text=text, sources=sources, cost=cost, usage=usage,
             metrics=metrics, stop_reason=stop_reason,
             persisted_to_s3=persisted_to_s3, answer_id=answer_id
+        )
+
+class _AsyncRetrieveEndpoints:
+    def __init__(self, client: httpx.AsyncClient, base_url: str):
+        self._client = client
+        self._base_url = base_url.rstrip("/")
+
+    async def create(
+        self,
+        question: str,
+        knowledge_base_id: Optional[str] = None
+    ) -> BdApiRetrieveResponse:
+        url = f"{self._base_url}/retrieve"
+        payload = {"question": question}
+        if knowledge_base_id:
+            payload["knowledge_base_id"] = knowledge_base_id
+
+        response = await self._client.post(url, json=payload)
+        if response.status_code >= 400:
+            await response.aread()
+            raise BdApiRequestError(status_code=response.status_code, response_body=response.text)
+
+        data = response.json()
+        return BdApiRetrieveResponse(
+            knowledge_base_id=data.get("knowledgeBaseId"),
+            raw_retrieval_response=data.get("rawRetrievalResponse", {}),
+            retrieved_items=data.get("retrievedItems", []),
+            prepared_prompt_input=data.get("preparedPromptInput", {}),
+            cost=data.get("cost", {})
         )
 
 class _AsyncAskEndpoints:
@@ -203,6 +253,7 @@ class BdApiClient:
 
         self._http_client = httpx.Client(headers=headers)
         self.ask = _AskEndpoints(self._http_client, self.base_url)
+        self.retrieve = _RetrieveEndpoints(self._http_client, self.base_url)
 
     def close(self):
         self._http_client.close()
@@ -222,6 +273,7 @@ class AsyncBdApiClient:
 
         self._http_client = httpx.AsyncClient(headers=headers)
         self.ask = _AsyncAskEndpoints(self._http_client, self.base_url)
+        self.retrieve = _AsyncRetrieveEndpoints(self._http_client, self.base_url)
 
     async def close(self):
         await self._http_client.aclose()
