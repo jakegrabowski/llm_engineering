@@ -44,9 +44,8 @@ class _AskEndpoints:
         system_instructions: str,
         user_message: str,
         inference_config: Optional[Dict[str, Any]] = None,
-        knowledge_base_id: Optional[str] = None,
-        stream: bool = False
-    ):
+        knowledge_base_id: Optional[str] = None
+    ) -> BdApiResponse:
         url = f"{self._base_url}/ask"
         payload = {
             "question": question,
@@ -58,10 +57,7 @@ class _AskEndpoints:
         if inference_config: payload["inference_config"] = inference_config
         if knowledge_base_id: payload["knowledge_base_id"] = knowledge_base_id
 
-        if stream:
-            return self._stream_request(url, payload)
-        else:
-            return self._sync_request(url, payload)
+        return self._sync_request(url, payload)
 
     def _parse_sse(self, response: httpx.Response) -> Generator[BdApiEvent, None, None]:
         event_type = None
@@ -164,9 +160,8 @@ class _AsyncAskEndpoints:
         system_instructions: str,
         user_message: str,
         inference_config: Optional[Dict[str, Any]] = None,
-        knowledge_base_id: Optional[str] = None,
-        stream: bool = False
-    ):
+        knowledge_base_id: Optional[str] = None
+    ) -> BdApiResponse:
         url = f"{self._base_url}/ask"
         payload = {
             "question": question,
@@ -178,10 +173,7 @@ class _AsyncAskEndpoints:
         if inference_config: payload["inference_config"] = inference_config
         if knowledge_base_id: payload["knowledge_base_id"] = knowledge_base_id
 
-        if stream:
-            return self._stream_request(url, payload)
-        else:
-            return await self._sync_request(url, payload)
+        return await self._sync_request(url, payload)
 
     async def _parse_sse(self, response: httpx.Response) -> AsyncGenerator[BdApiEvent, None]:
         event_type = None

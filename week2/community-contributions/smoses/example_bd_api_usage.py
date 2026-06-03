@@ -35,20 +35,18 @@ def run_sync_examples():
     client = BdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY)
 
     # ==========================================
-    # Example 1: Non-streaming Custom Mode (Sync)
+    # Example 1: Custom Mode (Sync)
     # ==========================================
-    print("\n--- Non-streaming Custom Mode (Sync) ---")
+    print("\n--- Custom Mode (Sync) ---")
     try:
         response = client.ask.create(
             question=QUESTION,
             model_id=MODEL_ID,
             system_instructions=SYSTEM_INSTRUCTIONS,
             user_message=USER_MESSAGE,
-            inference_config=INFERENCE_CONFIG,
-            stream=False
+            inference_config=INFERENCE_CONFIG
         )
 
-        # The non-streaming response collects all parts of the SSE stream
         print("Final Answer:", response.text)
         print("Sources used:", response.sources)
         print("Total Cost:", response.cost.get("total", {}).get("dollars"))
@@ -64,39 +62,7 @@ def run_sync_examples():
 
 
     # ==========================================
-    # Example 2: Streaming Custom Mode (Sync)
-    # ==========================================
-    print("\n--- Streaming Custom Mode (Sync) ---")
-    try:
-        stream = client.ask.create(
-            question=QUESTION,
-            model_id=MODEL_ID,
-            system_instructions=SYSTEM_INSTRUCTIONS,
-            user_message=USER_MESSAGE,
-            inference_config=INFERENCE_CONFIG,
-            stream=True
-        )
-
-        for event in stream:
-            if event.type == "start":
-                print(f"Stream started. Answer ID: {event.data.get('answerId')}")
-            elif event.type == "sources":
-                print(f"Found {len(event.data.get('sources', []))} sources.")
-            elif event.type == "delta":
-                print(event.data.get("text", ""), end="", flush=True)
-            elif event.type == "done":
-                print(f"\nStream complete. Stop reason: {event.data.get('stopReason')}")
-            elif event.type == "error":
-                print(f"\nError encountered: {event.data.get('message')}")
-
-    except BdApiRequestError as e:
-        print(f"Request failed before streaming. HTTP {e.status_code}")
-    except Exception as e:
-        print("Exception occurred.", e)
-
-
-    # ==========================================
-    # Example 3: Retrieval Mode (Sync)
+    # Example 2: Retrieval Mode (Sync)
     # ==========================================
     print("\n--- Retrieval Mode (Sync) ---")
     try:
@@ -121,7 +87,7 @@ def run_sync_examples():
 
 
 # ==========================================
-# Example 4: Asynchronous Usage (Ask & Retrieve)
+# Example 3: Asynchronous Usage (Ask & Retrieve)
 # ==========================================
 async def run_async_example():
     print("\n--- Asynchronous Usage (Async) ---")
@@ -133,8 +99,7 @@ async def run_async_example():
                 model_id=MODEL_ID,
                 system_instructions=SYSTEM_INSTRUCTIONS,
                 user_message=USER_MESSAGE,
-                inference_config=INFERENCE_CONFIG,
-                stream=False
+                inference_config=INFERENCE_CONFIG
             )
             print("Async Final Answer:", response.text)
             print("Async Answer ID:", response.answer_id)

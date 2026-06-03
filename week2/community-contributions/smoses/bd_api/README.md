@@ -25,9 +25,9 @@ Both clients can be used with context managers (`with` and `async with`) to ensu
 
 Custom mode allows you to pass a specific `model_id`, `system_instructions`, `user_message`, and `inference_config`.
 
-### Synchronous (Non-Streaming)
+### Synchronous
 
-When `stream=False`, the client automatically aggregates the streamed SSE events into a single `BdApiResponse` object.
+The client automatically aggregates the streamed SSE events from the API into a single `BdApiResponse` object.
 
 ```python
 response = client.ask.create(
@@ -38,33 +38,10 @@ response = client.ask.create(
     inference_config={
         "maxTokens": 1024,
         "temperature": 0.2
-    },
-    stream=False
+    }
 )
 
 print("Answer:", response.text)
-```
-
-### Synchronous (Streaming)
-
-When `stream=True`, the client returns a generator of `BdApiEvent` objects.
-
-```python
-stream = client.ask.create(
-    question="What are the reporting obligations?",
-    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
-    system_instructions="Answer using the supplied context. Do not invent citations.",
-    user_message="Question:\n{{question}}\n\nContext:\n{{context}}",
-    stream=True
-)
-
-for event in stream:
-    if event.type == "start":
-        print(f"Answer ID: {event.data.get('answerId')}")
-    elif event.type == "delta":
-        print(event.data.get("text", ""), end="")
-    elif event.type == "done":
-        print(f"\nCost: {event.data.get('cost')}")
 ```
 
 ### Asynchronous
@@ -77,42 +54,14 @@ async def get_answer():
         question="What are the reporting obligations?",
         model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
         system_instructions="Answer using the supplied context. Do not invent citations.",
-        user_message="Question:\n{{question}}\n\nContext:\n{{context}}",
-        stream=False
-    )
-    print("Answer:", response.text)
-    print("Sources:", response.sources)
-```
-
-## Using Retrieval Mode
-
-Retrieval mode (`POST /retrieve`) exposes the Knowledge Base retrieval step directly without generating an answer via an LLM. It's useful for previewing how a prompt is going to be prepared.
-
-### Synchronous Retrieval
-
-```python
-response = client.retrieve.create(
-    question="What are the reporting obligations?"
-)
-
-print("Knowledge Base ID:", response.knowledge_base_id)
-print("Retrieved Items:", len(response.retrieved_items))
-print("Prepared Prompt variables:", response.prepared_prompt_input.get("promptVariables"))
-```
-
-### Asynchronous Retrieval
-
-```python
-async def get_retrieval():
-    response = await async_client.retrieve.create(
-        question="What are the reporting obligations?"
+        user_message="Question:\n{{question}}\n\nContext:\n{{context}}"
     )
     print("Cost:", response.cost)
 ```
 
 ## Return Types
 
-When `stream=False`, `.create()` returns a `BdApiResponse` object with the following attributes:
+`.create()` returns a `BdApiResponse` object with the following attributes:
 - `text`: (str) The aggregated generated answer.
 - `sources`: (list) A list of sources retrieved from the knowledge base.
 - `cost`: (dict) Cost information (inference, retrieval, total).
