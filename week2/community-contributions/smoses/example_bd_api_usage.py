@@ -1,4 +1,5 @@
 import os
+import json
 import asyncio
 from dotenv import load_dotenv
 from bd_api import BdApiClient, AsyncBdApiClient
@@ -30,68 +31,92 @@ INFERENCE_CONFIG = {
 }
 
 
-def run_sync_examples():
-    # Initialize the synchronous client
-    client = BdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY)
-
-    # ==========================================
-    # Example 1: Custom Mode (Sync)
-    # ==========================================
+# ==========================================
+# Example 1: Custom Mode (Sync)
+# ==========================================
+def example_1_custom_mode_sync():
     print("\n--- Custom Mode (Sync) ---")
-    try:
-        response = client.ask.create(
-            question=QUESTION,
-            model_id=MODEL_ID,
-            system_instructions=SYSTEM_INSTRUCTIONS,
-            user_message=USER_MESSAGE,
-            inference_config=INFERENCE_CONFIG
-        )
+    with BdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY) as client:
+        try:
+            response = client.ask.create(
+                question=QUESTION,
+                model_id=MODEL_ID,
+                system_instructions=SYSTEM_INSTRUCTIONS,
+                user_message=USER_MESSAGE,
+                inference_config=INFERENCE_CONFIG
+            )
 
-        print("Final Answer:", response.text)
-        print("Sources used:", response.sources)
-        print("Total Cost:", response.cost.get("total", {}).get("dollars"))
+            print("Final Answer:", response.text)
+            print("Sources used:", response.sources)
+            print("Total Cost:", response.cost.get("total", {}).get("dollars"))
 
-    except BdApiRequestError as e:
-        print(f"Request failed before streaming. HTTP {e.status_code}")
-        print(f"Server response: {e.response_body}")
-    except BdApiStreamError as e:
-        print(f"Streaming failed midway! Message: {e.message}")
-        print(f"Code: {e.code}, Retryable: {e.retryable}")
-    except Exception as e:
-        print(f"Exception occurred. Ensure the server is running on {BD_API_BASE_URL}.", e)
-
-
-    # ==========================================
-    # Example 2: Retrieval Mode (Sync)
-    # ==========================================
-    print("\n--- Retrieval Mode (Sync) ---")
-    try:
-        retrieve_response = client.retrieve.create(question=QUESTION)
-
-        # knowledge_base_id is optional
-        # print(f"Knowledge Base ID used: {retrieve_response.knowledge_base_id}")
-        print(f"Total retrieved items: {len(retrieve_response.retrieved_items)}")
-
-        for item in retrieve_response.retrieved_items:
-            print(f"\n- Item {item.get('index')}: Score {item.get('score')}")
-            print(f"  Content: {item.get('text', '')[:150]}...")
-
-        prompt_vars = retrieve_response.prepared_prompt_input.get("promptVariables", {})
-        print(f"\nPrepared Context Variable (Snippet):\n{prompt_vars.get('context', '')[:200]}...\n")
-        print(f"Retrieval Estimated Cost: {retrieve_response.cost.get('retrievalEstimated', {}).get('dollars')} dollars")
-
-    except BdApiRequestError as e:
-        print(f"Retrieve Request failed. HTTP {e.status_code}")
-    except Exception as e:
-        print("Exception occurred.", e)
+        except BdApiRequestError as e:
+            print(f"Request failed before streaming. HTTP {e.status_code}")
+            print(f"Server response: {e.response_body}")
+        except BdApiStreamError as e:
+            print(f"Streaming failed midway! Message: {e.message}")
+            print(f"Code: {e.code}, Retryable: {e.retryable}")
+        except Exception as e:
+            print(f"Exception occurred. Ensure the server is running on {BD_API_BASE_URL}.", e)
 
 
 # ==========================================
-# Example 3: Asynchronous Usage (Ask & Retrieve)
+# Example 2: Retrieval Mode - Raw JSON (Sync)
 # ==========================================
-async def run_async_example():
+def example_2_retrieval_raw_sync():
+    print("\n--- Retrieval Mode - Raw JSON (Sync) ---")
+    with BdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY) as client:
+        try:
+            retrieve_response = client.retrieve.create(question=QUESTION)
+
+            print("Complete Raw API Response:")
+            raw_json = json.dumps(retrieve_response.raw_json, indent=2)
+            print(raw_json)
+
+            print("\nNormalized Retrieved Items JSON (first item):")
+            if retrieve_response.retrieved_items:
+                print(json.dumps(retrieve_response.retrieved_items[0], indent=2))
+
+            print("\nPrepared Prompt Input JSON:")
+            prepared_json = json.dumps(retrieve_response.prepared_prompt_input, indent=2)
+            print(prepared_json)
+
+        except BdApiRequestError as e:
+            print(f"Retrieve Request failed. HTTP {e.status_code}")
+        except Exception as e:
+            print("Exception occurred.", e)
+
+
+# ==========================================
+# Example 3: Retrieval Mode - Formatted (Sync)
+# ==========================================
+def example_3_retrieval_formatted_sync():
+    print("\n--- Retrieval Mode - Formatted (Sync) ---")
+    with BdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY) as client:
+        try:
+            retrieve_response = client.retrieve.create(question=QUESTION)
+
+            print(f"Total retrieved items: {len(retrieve_response.retrieved_items)}")
+
+            for item in retrieve_response.retrieved_items:
+                print(f"\n- Item {item.get('index')}: Score {item.get('score')}")
+                print(f"  Content: {item.get('text', '')}")
+
+            prompt_vars = retrieve_response.prepared_prompt_input.get("promptVariables", {})
+            print(f"\nPrepared Context Variable:\n{prompt_vars.get('context', '')}\n")
+            print(f"Retrieval Estimated Cost: {retrieve_response.cost.get('retrievalEstimated', {}).get('dollars')} dollars")
+
+        except BdApiRequestError as e:
+            print(f"Retrieve Request failed. HTTP {e.status_code}")
+        except Exception as e:
+            print("Exception occurred.", e)
+
+
+# ==========================================
+# Example 4: Asynchronous Usage (Ask & Retrieve)
+# ==========================================
+async def example_4_async_usage():
     print("\n--- Asynchronous Usage (Async) ---")
-    # Recommended to use via 'async with' context manager
     async with AsyncBdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY) as async_client:
         try:
             response = await async_client.ask.create(
@@ -121,8 +146,14 @@ async def run_async_example():
 
 
 if __name__ == "__main__":
-    # Run the synchronous examples
-    run_sync_examples()
+    # -------------------------------------------------------------
+    # Uncomment the specific example(s) below that you want to run!
+    # -------------------------------------------------------------
 
-    # Run the asynchronous example (requires asyncio.run for normal python execution)
-    # asyncio.run(run_async_example())
+    # example_1_custom_mode_sync()
+
+    example_2_retrieval_raw_sync()
+
+    # example_3_retrieval_formatted_sync()
+
+    # asyncio.run(example_4_async_usage())
