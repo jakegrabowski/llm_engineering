@@ -1,3 +1,29 @@
+"""
+MIGRATION NOTE - bd_api Library Updated
+
+BREAKING CHANGE:
+    OLD API (no longer works):
+        client.retrieve.create(question="...", knowledge_base_id="KB123")
+        client.ask.create(..., knowledge_base_id="KB123")
+
+    NEW API (required):
+        # Uses server default KB ID
+        client.retrieve.create(question="...")
+
+        # Or override KB ID with retrieval parameter
+        client.retrieve.create(question="...", retrieval={"knowledge_base_id": "KB123"})
+
+NEW FEATURES - Advanced retrieval options:
+    retrieval={
+        "knowledge_base_id": "KB123",    # Optional: override default KB
+        "retrieval_mode": "rerank",      # Optional: "standard" or "rerank"
+        "candidate_count": 20,           # Optional: 1-100 initial results
+        "result_count": 5                # Optional: 1-100 final results
+    }
+
+All examples below work unchanged - they use server defaults.
+"""
+
 import os
 import json
 import asyncio
@@ -145,6 +171,58 @@ async def example_4_async_usage():
             print("Exception occurred in async retrieve.", e)
 
 
+# ==========================================
+# Example 5: NEW - Advanced Retrieval with Reranking
+# ==========================================
+def example_5_advanced_retrieval():
+    """Demonstrates new retrieval features: reranking, custom counts, and metadata."""
+    print("\n--- Advanced Retrieval with Reranking ---")
+    with BdApiClient(base_url=BD_API_BASE_URL, api_key=BD_API_KEY) as client:
+        try:
+            # Use reranking for better relevance
+            retrieve_response = client.retrieve.create(
+                question=QUESTION,
+                retrieval={
+                    "retrieval_mode": "rerank",
+                    "candidate_count": 20,
+                    "result_count": 5
+                }
+            )
+
+            print("Complete Raw API Response:")
+            raw_json = json.dumps(retrieve_response.raw_json, indent=2)
+            print(raw_json)
+
+            print("\nNormalized Retrieved Items JSON (first item):")
+            if retrieve_response.retrieved_items:
+                print(json.dumps(retrieve_response.retrieved_items[0], indent=2))
+
+            print("\nPrepared Prompt Input JSON:")
+            prepared_json = json.dumps(retrieve_response.prepared_prompt_input, indent=2)
+            print(prepared_json)
+
+            # NEW: Access retrieval metadata
+            print("\n--- NEW: Retrieval Metadata ---")
+            print(f"Requested mode: {retrieve_response.retrieval.requested_mode}")
+            print(f"Effective mode: {retrieve_response.retrieval.effective_mode}")
+            print(f"Fallback used: {retrieve_response.retrieval.fallback_used}")
+            if retrieve_response.retrieval.fallback_used:
+                print(f"Fallback reason: {retrieve_response.retrieval.fallback_reason}")
+            print(f"Candidates retrieved: {retrieve_response.retrieval.initial_retrieved_count}")
+            print(f"Final results: {retrieve_response.retrieval.final_retrieved_count}")
+
+            # Cost breakdown
+            retrieval_cost = retrieve_response.cost.get('retrievalEstimated', {}).get('dollars', 0)
+            rerank_cost = retrieve_response.cost.get('rerankingEstimated', {}).get('dollars', 0)
+            print(f"\nRetrieval Cost: ${retrieval_cost:.6f}")
+            print(f"Reranking Cost: ${rerank_cost:.6f}")
+
+        except BdApiRequestError as e:
+            print(f"Retrieve Request failed. HTTP {e.status_code}")
+        except Exception as e:
+            print("Exception occurred.", e)
+
+
 if __name__ == "__main__":
     # -------------------------------------------------------------
     # Uncomment the specific example(s) below that you want to run!
@@ -152,8 +230,11 @@ if __name__ == "__main__":
 
     # example_1_custom_mode_sync()
 
-    example_2_retrieval_raw_sync()
+    # example_2_retrieval_raw_sync()
 
     # example_3_retrieval_formatted_sync()
 
     # asyncio.run(example_4_async_usage())
+
+    # NEW: Advanced retrieval with reranking
+    example_5_advanced_retrieval()

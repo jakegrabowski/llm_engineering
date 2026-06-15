@@ -1,3 +1,5 @@
+from typing import Optional
+
 class BdApiError(Exception):
     """Base exception for all BdApi errors."""
     pass
@@ -11,7 +13,7 @@ class BdApiRequestError(BdApiError):
 
 class BdApiStreamError(BdApiError):
     """Exception raised when an error event is received during SSE streaming."""
-    def __init__(self, message: str, code: str = None, retryable: bool = False):
+    def __init__(self, message: str, code: Optional[str] = None, retryable: bool = False):
         self.message = message
         self.code = code
         self.retryable = retryable
