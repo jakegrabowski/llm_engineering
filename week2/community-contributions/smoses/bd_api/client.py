@@ -1,7 +1,7 @@
 import json
 import httpx
 from typing import Optional, Dict, Any, Generator, AsyncGenerator
-from .types import BdApiEvent, BdApiResponse, BdApiRetrieveResponse
+from .types import BdApiEvent, BdApiResponse, BdApiRetrieveResponse, RetrievalConfig, RetrievalMetadata
 from .errors import BdApiRequestError, BdApiStreamError
 
 class _RetrieveEndpoints:
@@ -12,20 +12,34 @@ class _RetrieveEndpoints:
     def create(
         self,
         question: str,
-        knowledge_base_id: Optional[str] = None
+        retrieval: Optional[RetrievalConfig] = None
     ) -> BdApiRetrieveResponse:
         url = f"{self._base_url}/retrieve"
         payload = {"question": question}
-        if knowledge_base_id:
-            payload["knowledge_base_id"] = knowledge_base_id
+        if retrieval:
+            payload["retrieval"] = retrieval
 
         response = self._client.post(url, json=payload)
         if response.status_code >= 400:
             raise BdApiRequestError(status_code=response.status_code, response_body=response.text)
 
         data = response.json()
+        retrieval_data = data.get("retrieval", {})
+
         return BdApiRetrieveResponse(
             knowledge_base_id=data.get("knowledgeBaseId"),
+            retrieval=RetrievalMetadata(
+                requested_mode=retrieval_data.get("requestedMode", ""),
+                effective_mode=retrieval_data.get("effectiveMode", ""),
+                fallback_used=retrieval_data.get("fallbackUsed", False),
+                candidate_count=retrieval_data.get("candidateCount", 0),
+                result_count=retrieval_data.get("resultCount", 0),
+                initial_retrieved_count=retrieval_data.get("initialRetrievedCount", 0),
+                final_retrieved_count=retrieval_data.get("finalRetrievedCount", 0),
+                fallback_reason=retrieval_data.get("fallbackReason"),
+                rerank_model_arn=retrieval_data.get("rerankModelArn"),
+                deduplication=retrieval_data.get("deduplication")
+            ),
             raw_retrieval_response=data.get("rawRetrievalResponse", {}),
             retrieved_items=data.get("retrievedItems", []),
             prepared_prompt_input=data.get("preparedPromptInput", {}),
@@ -45,18 +59,20 @@ class _AskEndpoints:
         system_instructions: str,
         user_message: str,
         inference_config: Optional[Dict[str, Any]] = None,
-        knowledge_base_id: Optional[str] = None
+        retrieval: Optional[RetrievalConfig] = None
     ) -> BdApiResponse:
         url = f"{self._base_url}/ask"
-        payload = {
+        payload: Dict[str, Any] = {
             "question": question,
             "model_id": model_id,
             "system_instructions": system_instructions,
             "user_message": user_message
         }
 
-        if inference_config: payload["inference_config"] = inference_config
-        if knowledge_base_id: payload["knowledge_base_id"] = knowledge_base_id
+        if inference_config:
+            payload["inference_config"] = inference_config
+        if retrieval:
+            payload["retrieval"] = retrieval
 
         return self._sync_request(url, payload)
 
@@ -93,10 +109,25 @@ class _AskEndpoints:
         stop_reason = None
         persisted_to_s3 = False
         answer_id = None
+        retrieval_metadata = None
 
         for event in self._stream_request(url, payload):
             if event.type == "start":
                 answer_id = event.data.get("answerId")
+                retrieval_data = event.data.get("retrieval")
+                if retrieval_data:
+                    retrieval_metadata = RetrievalMetadata(
+                        requested_mode=retrieval_data.get("requestedMode", ""),
+                        effective_mode=retrieval_data.get("effectiveMode", ""),
+                        fallback_used=retrieval_data.get("fallbackUsed", False),
+                        candidate_count=retrieval_data.get("candidateCount", 0),
+                        result_count=retrieval_data.get("resultCount", 0),
+                        initial_retrieved_count=retrieval_data.get("initialRetrievedCount", 0),
+                        final_retrieved_count=retrieval_data.get("finalRetrievedCount", 0),
+                        fallback_reason=retrieval_data.get("fallbackReason"),
+                        rerank_model_arn=retrieval_data.get("rerankModelArn"),
+                        deduplication=retrieval_data.get("deduplication")
+                    )
             elif event.type == "sources":
                 sources = event.data.get("sources", [])
             elif event.type == "delta":
@@ -117,7 +148,8 @@ class _AskEndpoints:
         return BdApiResponse(
             text=text, sources=sources, cost=cost, usage=usage,
             metrics=metrics, stop_reason=stop_reason,
-            persisted_to_s3=persisted_to_s3, answer_id=answer_id
+            persisted_to_s3=persisted_to_s3, answer_id=answer_id,
+            retrieval=retrieval_metadata
         )
 
 class _AsyncRetrieveEndpoints:
@@ -128,12 +160,12 @@ class _AsyncRetrieveEndpoints:
     async def create(
         self,
         question: str,
-        knowledge_base_id: Optional[str] = None
+        retrieval: Optional[RetrievalConfig] = None
     ) -> BdApiRetrieveResponse:
         url = f"{self._base_url}/retrieve"
         payload = {"question": question}
-        if knowledge_base_id:
-            payload["knowledge_base_id"] = knowledge_base_id
+        if retrieval:
+            payload["retrieval"] = retrieval
 
         response = await self._client.post(url, json=payload)
         if response.status_code >= 400:
@@ -141,8 +173,22 @@ class _AsyncRetrieveEndpoints:
             raise BdApiRequestError(status_code=response.status_code, response_body=response.text)
 
         data = response.json()
+        retrieval_data = data.get("retrieval", {})
+
         return BdApiRetrieveResponse(
             knowledge_base_id=data.get("knowledgeBaseId"),
+            retrieval=RetrievalMetadata(
+                requested_mode=retrieval_data.get("requestedMode", ""),
+                effective_mode=retrieval_data.get("effectiveMode", ""),
+                fallback_used=retrieval_data.get("fallbackUsed", False),
+                candidate_count=retrieval_data.get("candidateCount", 0),
+                result_count=retrieval_data.get("resultCount", 0),
+                initial_retrieved_count=retrieval_data.get("initialRetrievedCount", 0),
+                final_retrieved_count=retrieval_data.get("finalRetrievedCount", 0),
+                fallback_reason=retrieval_data.get("fallbackReason"),
+                rerank_model_arn=retrieval_data.get("rerankModelArn"),
+                deduplication=retrieval_data.get("deduplication")
+            ),
             raw_retrieval_response=data.get("rawRetrievalResponse", {}),
             retrieved_items=data.get("retrievedItems", []),
             prepared_prompt_input=data.get("preparedPromptInput", {}),
@@ -162,18 +208,20 @@ class _AsyncAskEndpoints:
         system_instructions: str,
         user_message: str,
         inference_config: Optional[Dict[str, Any]] = None,
-        knowledge_base_id: Optional[str] = None
+        retrieval: Optional[RetrievalConfig] = None
     ) -> BdApiResponse:
         url = f"{self._base_url}/ask"
-        payload = {
+        payload: Dict[str, Any] = {
             "question": question,
             "model_id": model_id,
             "system_instructions": system_instructions,
             "user_message": user_message
         }
 
-        if inference_config: payload["inference_config"] = inference_config
-        if knowledge_base_id: payload["knowledge_base_id"] = knowledge_base_id
+        if inference_config:
+            payload["inference_config"] = inference_config
+        if retrieval:
+            payload["retrieval"] = retrieval
 
         return await self._sync_request(url, payload)
 
@@ -211,10 +259,25 @@ class _AsyncAskEndpoints:
         stop_reason = None
         persisted_to_s3 = False
         answer_id = None
+        retrieval_metadata = None
 
         async for event in self._stream_request(url, payload):
             if event.type == "start":
                 answer_id = event.data.get("answerId")
+                retrieval_data = event.data.get("retrieval")
+                if retrieval_data:
+                    retrieval_metadata = RetrievalMetadata(
+                        requested_mode=retrieval_data.get("requestedMode", ""),
+                        effective_mode=retrieval_data.get("effectiveMode", ""),
+                        fallback_used=retrieval_data.get("fallbackUsed", False),
+                        candidate_count=retrieval_data.get("candidateCount", 0),
+                        result_count=retrieval_data.get("resultCount", 0),
+                        initial_retrieved_count=retrieval_data.get("initialRetrievedCount", 0),
+                        final_retrieved_count=retrieval_data.get("finalRetrievedCount", 0),
+                        fallback_reason=retrieval_data.get("fallbackReason"),
+                        rerank_model_arn=retrieval_data.get("rerankModelArn"),
+                        deduplication=retrieval_data.get("deduplication")
+                    )
             elif event.type == "sources":
                 sources = event.data.get("sources", [])
             elif event.type == "delta":
@@ -235,7 +298,8 @@ class _AsyncAskEndpoints:
         return BdApiResponse(
             text=text, sources=sources, cost=cost, usage=usage,
             metrics=metrics, stop_reason=stop_reason,
-            persisted_to_s3=persisted_to_s3, answer_id=answer_id
+            persisted_to_s3=persisted_to_s3, answer_id=answer_id,
+            retrieval=retrieval_metadata
         )
 
 class BdApiClient:

@@ -1,5 +1,5 @@
 from .client import BdApiClient, AsyncBdApiClient
-from .types import BdApiEvent, BdApiResponse, BdApiRetrieveResponse
+from .types import BdApiEvent, BdApiResponse, BdApiRetrieveResponse, RetrievalConfig, RetrievalMetadata
 from .errors import BdApiError, BdApiRequestError, BdApiStreamError
 
 __all__ = [
@@ -8,6 +8,8 @@ __all__ = [
     "BdApiEvent",
     "BdApiResponse",
     "BdApiRetrieveResponse",
+    "RetrievalConfig",
+    "RetrievalMetadata",
     "BdApiError",
     "BdApiRequestError",
     "BdApiStreamError"
