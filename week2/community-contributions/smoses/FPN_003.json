@@ -1,0 +1,144 @@
+{
+  "question": "What is the recommended first-line treatment for community-acquired pneumonia in adults?",
+  "references": "\n\n**References from FPnotebook:**\n",
+  "models": {
+    "openai/gpt-oss-120b": {
+      "answer": "**First‑line outpatient therapy for community‑acquired pneumonia (CAP) in previously healthy adults (low risk for resistant organisms)** – The FPNotebook recommends selecting **one** of the following regimens, each given for a minimum of 5 days (with ≥2 days afebrile before stopping):  \n\n1. **Doxycycline 100 mg orally twice daily** × 5 days (covers S. pneumoniae, M. pneumoniae, H. influenzae, and atypicals).  \n2. **High‑dose amoxicillin 1 g orally three times daily** × 5 days (preferred when atypical coverage is not needed).  \n3. **Levofloxacin 750 mg orally once daily** × 5 days (respiratory fluoroquinolone reserved for patients at higher risk of resistant pathogens or when β‑lactam allergy exists).  \n\nWhen atypical coverage is specifically desired, an alternative outpatient option is **azithromycin 500 mg daily + high‑dose amoxicillin** (or high‑dose doxycycline: 200 mg BID for 3 days → 100 mg BID for 4 days).  \n\nThese options reflect the FPNotebook “Community Acquired Pneumonia – Outpatient in Adults” section and incorporate the updated 5‑day default course. Clinical judgment should guide selection based on patient comorbidities, recent antibiotic exposure, local resistance patterns, and drug tolerability.  \n\n*Disclaimer: This summary is based on FPNotebook content and does not replace individualized clinical decision‑making or current guideline updates; always consider patient‑specific factors and institutional protocols.*",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 4,
+          "clarity": 5,
+          "total": 24,
+          "comments": "The answer is highly accurate, consistent with FPNotebook recommendations and current standards for first-line outpatient treatment of community-acquired pneumonia in adults. It provides actionable and clinically useful treatment regimens, including duration and dosing, and addresses different clinical scenarios such as atypical coverage and fluoroquinolone use. The completeness is excellent, covering the main antibiotic choices with nuanced considerations like patient risk factors, resistance, and allergies. The response is mostly concise and clear, though the list format and additional dosing details increase length slightly. Overall, the information is presented in a well-structured, precise, and practical manner appropriate for medical providers."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 5,
+        "completeness": 5,
+        "conciseness": 5,
+        "clarity": 5,
+        "total": 25,
+        "comments": "excellent response"
+      }
+    },
+    "ai21/jamba-large-1.7": {
+      "answer": "The recommended first-line treatment for community-acquired pneumonia (CAP) in adults includes **Doxycycline** (100 mg orally twice daily for 5 days), **high-dose Amoxicillin** (1000 mg orally three times daily for 5 days), or **Augmentin** (not needed if Streptococcus pneumoniae is not suspected). These options are appropriate for previously healthy patients without significant comorbidities, daycare exposure, or recent antibiotic use. The treatment duration is typically 5 days, with antibiotics discontinued after this period if the patient has improved and is clinically stable. This is supported by FPNotebook's recommendations under \"Management Antibiotics - First-Line Options\" in the Pulmonology Book's Infectious Disease Chapter.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 4,
+          "conciseness": 4,
+          "clarity": 5,
+          "total": 23,
+          "comments": "The answer accurately reflects recommended first-line therapies for community-acquired pneumonia in adults, listing doxycycline and high-dose amoxicillin as core options and noting the situational use of Augmentin. The mention of patient factors to consider (healthy without comorbidities, no recent antibiotics) enhances clinical usefulness. The treatment duration guidance is appropriate and consistent with current standards. However, the response could be more complete by briefly noting other first-line options such as macrolides or considerations for patients with comorbidities. The explanation is clear and mostly concise, though slightly more compact phrasing could improve conciseness."
+        }
+      },
+      "human_eval": {
+        "accuracy": 4,
+        "usefulness": 3,
+        "completeness": 3,
+        "conciseness": 5,
+        "clarity": 3,
+        "total": 18,
+        "comments": "review was spot-on - this was concise but incomplete"
+      }
+    },
+    "amazon/nova-pro-v1": {
+      "answer": "The recommended first-line treatments for community-acquired pneumonia in adults, according to the FPNotebook content, include:\n\n- **Outpatient, Low-Risk Patients:**\n  - **Doxycycline:** 100 mg orally twice daily for 5 days. \n  - **High-Dose Amoxicillin:** 1000 mg orally three times daily for 5 days.\n\n- **Outpatient, Higher-Risk or Inpatient:**\n  - **Levofloxacin:** For monotherapy.\n  - **Azithromycin plus high-dose Amoxicillin** or **high-dose Doxycycline.**\n  - **Ceftriaxone AND Azithromycin (or Doxycycline)** for parenteral regimens.\n\nNote: The duration of antibiotic treatment is typically for five days, provided the patient has improved and is clinically stable. For higher-risk patients or those with moderate to severe pneumonia, broader spectrum and combination therapies are recommended. Clinical judgment and local resistance patterns should guide the choice of antibiotics.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 4,
+          "clarity": 4,
+          "total": 23,
+          "comments": "The answer accurately reflects the recommended first-line treatments for community-acquired pneumonia (CAP) in adults as per FPNotebook, detailing options for low-risk outpatients as well as higher-risk or hospitalized patients, including dosage and duration. It appropriately emphasizes clinical judgment and local resistance considerations. The completeness is excellent, covering the main antibiotic choices and relevant treatment settings. The response is mostly concise and clear but could be slightly more streamlined by integrating bullet points into a more compact paragraph format to enhance readability and flow. Some minor redundancies and phrasing could be improved for clearer rapid comprehension."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 4,
+        "completeness": 4,
+        "conciseness": 5,
+        "clarity": 3,
+        "total": 21,
+        "comments": "concise and accurate, but a more complete better worded answer would be welcome."
+      }
+    },
+    "meta-llama/llama-3.3-70b-instruct": {
+      "answer": "The recommended first-line treatment for community-acquired pneumonia in adults, according to the FPNotebook content, includes several options depending on the severity and patient-specific factors. For outpatient management in adults with low risk for antibiotic resistance, first-line options include Doxycycline 100 mg orally twice daily for 5 days, or high-dose Amoxicillin 1000 mg orally three times daily for 5 days. For more severe cases or those requiring hospitalization, the recommendations expand to include broader coverage with medications such as Levofloxacin, Azithromycin combined with high-dose Amoxicillin, or Cephalosporins like Cefuroxime combined with Azithromycin. It's crucial to assess the patient's risk factors for resistance, comorbidities, and the presence of specific symptoms to guide the selection of antibiotics. Additionally, patient-specific considerations, such as the ability to take oral medications and the presence of certain comorbid conditions like asthma or COPD, can influence the choice of first-line treatment. Always consider current clinical guidelines and patient-specific factors when making treatment decisions.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 3,
+          "clarity": 4,
+          "total": 22,
+          "comments": "The answer is medically accurate and aligns well with recommended first-line treatments for community-acquired pneumonia in adults, covering outpatient and inpatient options as well as patient-specific considerations. It provides useful, actionable information reflecting clinical decision-making factors such as severity and risk of resistance. The response is mostly complete, addressing different clinical scenarios and antibiotic choices. However, it is somewhat verbose and contains some repetition, which slightly detracts from conciseness and clarity. Improving sentence structure for brevity and more direct phrasing would enhance readability, but overall the content is clear and appropriate for a medical professional seeking guidance."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 4,
+        "completeness": 5,
+        "conciseness": 3,
+        "clarity": 3,
+        "total": 20,
+        "comments": "clacked conciseness and could be more clear and to the point"
+      }
+    },
+    "minimax/minimax-m2.5": {
+      "answer": "## First-Line Treatment for Community-Acquired Pneumonia in Adults\n\n### Outpatient Treatment (Low Risk)\nFor previously healthy adults without significant comorbidities, no daycare exposure, and no antibiotics in the last 3 months:\n\n**First-line options (select one):**\n\n- **Doxycycline**: 100 mg orally twice daily for 5 days — covers streptococcus pneumoniae, mycoplasma, H. influenzae, and atypicals\n- **High-dose Amoxicillin**: 1000 mg orally three times daily for 5 days\n\n**Alternative options:** Levofloxacin, or Azithromycin combined with high-dose Amoxicillin\n\n### Inpatient Treatment (Non-ICU)\n\n**Oral regimen:** Levofloxacin monotherapy OR combination therapy (Azithromycin or Doxycycline + Amoxicillin-clavulanate or cefalosporin)\n\n**Parenteral regimen:** Ceftriaxone + Azithromycin (or Doxycycline) OR Levofloxacin alone\n\n### ICU Treatment\nCeftriaxone + Azithromycin (or Doxycycline) OR Levofloxacin + Aztreonam\n\n**Key Points:**\n- Start antibiotics within 4 hours of hospitalization (reduces mortality and length of stay)\n- Five-day course is now recommended as default duration (minimum); may discontinue after at least 5 days if patient is improved and clinically stable\n- Reserve fluoroquinolones to prevent antibiotic resistance\n- IDSA recommends corticosteroids only for CAP with asthma/COPD exacerbation or refractory septic shock\n\nThis information is based on FPNotebook content and should be supplemented with local antibiogram data and individualized patient assessment.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 3,
+          "clarity": 4,
+          "total": 22,
+          "comments": "The answer is medically accurate and provides a detailed, guideline-consistent overview of first-line treatments for community-acquired pneumonia in adults, covering outpatient, inpatient (non-ICU), and ICU settings. It includes key recommendations on timing, duration, and antibiotic stewardship, making it highly clinically useful and complete for a medical professional. However, the multiple formatting sections and bullet points reduce conciseness, and the answer could be slightly more streamlined for rapid point-of-care use. Clarity is generally good, though minor improvements in flow and summarization could enhance quick comprehension."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 5,
+        "completeness": 5,
+        "conciseness": 4,
+        "clarity": 4,
+        "total": 23,
+        "comments": "overall very good answer.  "
+      }
+    },
+    "moonshotai/kimi-k2-thinking": {
+      "answer": "Community-acquired pneumonia (CAP) first-line treatment in adults varies by care setting and resistance risk. **For outpatients at low risk for antibiotic resistance** (previously healthy, no daycare exposure, no antibiotics in last 3 months), options include doxycycline 100 mg orally twice daily for 5 days or high-dose amoxicillin 1000 mg orally three times daily for 5 days. **For general outpatient CAP**, first-line regimens include levofloxacin monotherapy, azithromycin combined with high-dose amoxicillin, or high-dose doxycycline (3 days at 200 mg twice daily, then 4 days at 100 mg twice daily). **For hospitalized non-ICU patients**, recommended first-line therapy is either levofloxacin monotherapy or ceftriaxone combined with azithromycin (or doxycycline). **For ICU patients**, options include ceftriaxone plus azithromycin (or doxycycline) or levofloxacin with aztreonam. All patients should receive a minimum 5-day course, with extension only if clinically unstable. The source emphasizes reserving fluoroquinolones to prevent resistance and starting antibiotics within 4 hours of hospitalization to decrease mortality.",
+      "evals": {
+        "gpt-4.1-mini": {
+          "accuracy": 5,
+          "usefulness": 5,
+          "completeness": 5,
+          "conciseness": 4,
+          "clarity": 4,
+          "total": 23,
+          "comments": "The answer is medically accurate and thorough, clearly delineating first-line treatments for CAP based on clinical setting and resistance risk. It provides actionable recommendations with appropriate antibiotic choices for outpatients, hospitalized non-ICU, and ICU patients, as well as duration and principles of therapy like timing and resistance prevention. While comprehensive, the response is slightly lengthy and dense, which affects conciseness and clarity somewhat. Breaking complex dosing details into separate sentences or bullet points might improve readability and quick reference at the point of care."
+        }
+      },
+      "human_eval": {
+        "accuracy": 5,
+        "usefulness": 4,
+        "completeness": 5,
+        "conciseness": 4,
+        "clarity": 4,
+        "total": 22,
+        "comments": ""
+      }
+    }
+  }
+}
