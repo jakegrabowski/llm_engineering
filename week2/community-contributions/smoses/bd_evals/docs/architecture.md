@@ -1,7 +1,7 @@
 # Architecture
 
 **Status: Implemented and verified. All packages, stages, and reporting are
-working with 312 passing tests.**
+covered by the current offline test suite.**
 
 ## Purpose
 

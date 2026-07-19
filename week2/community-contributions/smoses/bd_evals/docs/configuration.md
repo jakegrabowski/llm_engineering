@@ -1,7 +1,7 @@
 # Configuration
 
-**Status: Implemented and verified. All schemas, resolution, and validation
-are working with 127+ tests.**
+**Status: Implemented and verified. Schemas, resolution, and validation are
+covered by the current offline test suite.**
 
 ## Root Catalogs
 
