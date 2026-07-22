@@ -3,9 +3,9 @@ test:
   id: retrieval-example
   type: retrieval
 questions:
-  source: ../config/questions.yaml
+  source: ../questions.yaml
 knowledge_bases:
-  source: ../config/knowledge-bases.yaml
+  source: ../knowledge-bases.yaml
 selection:
   knowledge_bases:
     include: [kb_placeholder_1, kb_placeholder_2, kb_placeholder_3]
