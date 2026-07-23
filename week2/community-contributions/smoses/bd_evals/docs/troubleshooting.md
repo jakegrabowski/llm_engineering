@@ -10,7 +10,7 @@ resolved from the containing file. Check indentation, `schema_version`,
 duplicate IDs, selected IDs, and `result_count <= candidate_count`.
 
 ```bash
-rag-evals validate eval_definitions/retrieval-example.yaml
+rag-evals validate definitions/retrieval-example.yaml
 ```
 
 **Verified error:** Missing `test` block produces exit code 3 with message:
@@ -19,6 +19,18 @@ rag-evals validate eval_definitions/retrieval-example.yaml
 Unknown template variables fail before API execution. Missing optional rubric
 data must be handled through an approved template default filter (`default`),
 not an unknown or misspelled variable.
+
+## Workspace Missing or Invalid
+
+Every command requires `--workspace PATH` or `RAG_EVALS_WORKSPACE`. The selected
+directory must contain both `config/` and `results/`.
+
+```bash
+export RAG_EVALS_WORKSPACE=/path/to/workspace
+```
+
+Definition arguments are relative to `<workspace>/config`. Absolute paths,
+`..` traversal, and symlinks escaping `config/` are rejected.
 
 ## Placeholder Rejected
 
@@ -39,6 +51,10 @@ require the API Gateway key.
 
 **Verified error:** Missing `BD_API_BASE_URL` produces exit code 3 with message:
 `Error: BD_API_BASE_URL environment variable not set.`
+
+If `bd_api` fails with `No module named 'httpx'`, reinstall this package in the
+same Python environment with `python3.12 -m pip install -e ".[dev]"`. `httpx`
+is a declared runtime dependency.
 
 ## Rerank Falls Back to Standard
 
@@ -122,7 +138,8 @@ files, reconciliation uses verified artifacts as the source of truth.
 rag-evals status retrieval my-dataset
 
 # Resume missing artifacts
-rag-evals run-retrieval eval_definitions/my-test.yaml --only-missing
+rag-evals run-retrieval definitions/retrieval/my-test.yaml \
+  --only-missing --approve-call-count N
 ```
 
 ## Exit Codes
@@ -131,7 +148,7 @@ rag-evals run-retrieval eval_definitions/my-test.yaml --only-missing
 |---:|---|
 | 0 | Success |
 | 1 | General error |
-| 2 | Command not yet implemented |
+| 2 | CLI usage error |
 | 3 | Configuration error (invalid YAML, missing file, missing env var) |
 | 4 | Planning error |
 | 5 | Artifact store error (sealed, stale, hash mismatch, cleanup refused) |

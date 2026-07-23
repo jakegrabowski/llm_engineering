@@ -3,14 +3,15 @@
 **Status: Implemented and verified. Schemas, resolution, and validation are
 covered by the current offline test suite.**
 
-## Root Catalogs
+## Workspace Configuration
 
 ```text
-config/
+<workspace>/config/
   questions.yaml
   knowledge-bases.yaml
   answer-models.yaml
   judge-models.yaml
+  definitions/
 ```
 
 YAML is loaded safely with `yaml.safe_load`. Every file has `schema_version: 1`.
@@ -23,13 +24,14 @@ Reusable content is referenced with:
 
 ```yaml
 questions:
-  source: ../../config/questions.yaml
+  source: ../questions.yaml
 ```
 
 The path is resolved relative to the YAML file containing `source`, never the
-shell working directory. References must remain within `bd_evals`. Missing files,
-circular references, and path traversal fail validation. Inputs are hashed and
-snapshotted without secret values.
+shell working directory. References must remain within the selected workspace's
+`config/` boundary. Missing files, circular references, absolute paths, symlink
+escapes, and path traversal fail validation. Inputs are hashed and snapshotted
+without secret values.
 
 **Verified:** `SourceResolver` in `src/rag_evals/config/resolver.py` implements
 containing-file-relative resolution, cycle detection, boundary checks, and
@@ -197,6 +199,10 @@ All definitions require `schema_version: 1` and a `test` block with `id` and
 `type`. Ask-based definitions require named `prompt_variants` and
 `inference_variants` (no hidden Cartesian expansion). Dataset IDs must match
 `[a-z0-9][a-z0-9-]{0,62}`.
+
+Definition arguments passed to the CLI are relative to `<workspace>/config`.
+For example, `definitions/retrieval-example.yaml` resolves to
+`<workspace>/config/definitions/retrieval-example.yaml`.
 
 **Verified:** `parse_definition()` in `src/rag_evals/config/schemas.py` dispatches
 by `test.type` and raises `ConfigError` on validation failure.

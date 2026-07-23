@@ -5,10 +5,16 @@ call-count approval and preflight before dataset creation.**
 
 The executable is `rag-evals`.
 
+Every command requires a workspace selected by `--workspace PATH` or
+`RAG_EVALS_WORKSPACE`. The global option must appear before the command. An
+explicit option overrides the environment value. Commands fail with exit code 3
+when neither is configured; help remains available.
+
 ## Global Options
 
 | Option | Description |
 |---|---|
+| `--workspace PATH` | Workspace containing `config/` and `results/`; defaults from `RAG_EVALS_WORKSPACE`. |
 | `--verbose`, `-v` | Enable verbose (DEBUG) logging. |
 | `--help` | Show help and exit. |
 
@@ -31,6 +37,9 @@ The executable is `rag-evals`.
 
 Malformed definitions use the normal configuration error path; no command uses a
 not-implemented sentinel.
+
+`DEFINITION` is a relative path below `<workspace>/config`. Absolute paths and
+paths escaping that directory are rejected.
 
 ## Implemented Command Details
 
@@ -76,8 +85,9 @@ Placeholder KB IDs are rejected before any API call.
 rag-evals report DEFINITION
 ```
 
-Joins lineage across datasets and generates `reports/latest/report.csv` and
-`reports/latest/report.md`. Makes zero API calls.
+Joins lineage across datasets and generates
+`<workspace>/results/reports/latest/report.csv` and `report.md`. Makes zero API
+calls.
 
 ### status
 
@@ -107,7 +117,7 @@ Without `--confirm-dataset-id`: displays a dry-run inventory (lifecycle, file
 count, size, downstream references, report references, can-clean status).
 
 With `--confirm-dataset-id`: atomically moves the dataset to
-`datasets/.trash/<type>/<id>-<timestamp>`. Rejects sealed datasets,
+`<workspace>/results/datasets/.trash/<type>/<id>-<timestamp>-<uuid>`. Rejects sealed datasets,
 downstream-referenced datasets, and mismatched confirmation IDs.
 
 ## Exit Codes
@@ -131,7 +141,7 @@ domain exit codes.
 Any live execution with planned API calls requires the exact current count:
 
 ```bash
-rag-evals run-retrieval path/to/test.yaml --approve-call-count 30
+rag-evals run-retrieval definitions/retrieval/test.yaml --approve-call-count 30
 ```
 
 If filtering or source changes alter the plan, the command fails and prints the

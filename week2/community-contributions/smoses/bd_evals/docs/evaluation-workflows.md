@@ -3,6 +3,10 @@
 **Status: Implemented and verified. All stages work with fake adapter in tests.
 Live execution requires real KB IDs, model IDs, and call-count approval.**
 
+The examples assume `RAG_EVALS_WORKSPACE` points to a directory containing
+`config/` and `results/`. Definition paths are relative to its `config/`
+directory.
+
 ## 1. Validate and Plan
 
 Always validate before execution. Planning resolves all inputs, displays selected
@@ -12,16 +16,16 @@ IDs, exclusions, matrix dimensions, deterministic IDs, and exact API call counts
 
 ```bash
 # Validate configuration and templates
-rag-evals validate eval_definitions/retrieval-example.yaml
+rag-evals validate definitions/retrieval-example.yaml
 
 # Validate with JSON output
-rag-evals validate eval_definitions/retrieval-example.yaml --format json
+rag-evals validate definitions/retrieval-example.yaml --format json
 
 # Plan (shows dimensions, call counts, approval requirement)
-rag-evals plan eval_definitions/retrieval-example.yaml
+rag-evals plan definitions/retrieval-example.yaml
 
 # Plan with JSON output
-rag-evals plan eval_definitions/retrieval-example.yaml --format json
+rag-evals plan definitions/retrieval-example.yaml --format json
 ```
 
 Any live run with nonzero calls requires `--approve-call-count N`, where `N`
@@ -51,13 +55,13 @@ token count is a labeled estimate because the endpoint has no usage metadata.
 **Verified command (dry run):**
 
 ```bash
-rag-evals run-retrieval eval_definitions/retrieval-example.yaml --dry-run
+rag-evals run-retrieval definitions/retrieval-example.yaml --dry-run
 ```
 
 **Live execution requires:**
 
 ```bash
-rag-evals run-retrieval eval_definitions/retrieval-example.yaml \
+rag-evals run-retrieval definitions/retrieval-example.yaml \
   --approve-call-count 12
 ```
 
@@ -109,10 +113,12 @@ separate.
 **Verified command:**
 
 ```bash
-rag-evals report eval_definitions/retrieval-example.yaml
+rag-evals report definitions/reports/retrieval-evaluation.yaml
 ```
 
-Generates `reports/latest/report.csv` and `reports/latest/report.md`.
+The report definition identifies retrieval and retrieval-judgment dataset IDs.
+Output defaults to `<workspace>/results/reports/latest/report.csv` and
+`report.md`.
 
 ## Resume
 

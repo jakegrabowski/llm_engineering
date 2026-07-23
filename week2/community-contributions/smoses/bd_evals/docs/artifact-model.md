@@ -6,7 +6,7 @@ clean and regenerate them under a new dataset ID.**
 ## Dataset Types
 
 ```text
-datasets/
+<workspace>/results/datasets/
   retrieval/
   retrieval_judgments/
   answers/
@@ -36,9 +36,9 @@ resolved definition, and status.
 - `sealed`: explicitly immutable; no mutation or cleanup.
 - `failed`: dataset-level terminal failure when completion cannot proceed.
 
-Successful artifacts are never silently overwritten. `--force` may replace only
-eligible failed artifacts in a building dataset. Changed resolved configuration
-requires a different dataset ID.
+Successful artifacts are never silently overwritten. Changed resolved
+configuration requires a different dataset ID. The current CLI has no `--force`
+option.
 
 **Verified:** `transition_lifecycle()` enforces all transition rules.
 Artifact and failure writes are accepted only while building. Dataset reuse
@@ -62,7 +62,7 @@ artifact payload excluding the `content_hash` field.
 ## Lineage
 
 Downstream artifacts record source dataset type/ID, source artifact ID,
-project-relative path, and expected content hash. Loaders verify every field.
+results-relative path, and expected content hash. Loaders verify every field.
 Retrieval data is not copied into downstream datasets, although exact frozen
 context hashes and rendered messages are retained where required for
 auditability.
@@ -122,14 +122,14 @@ downstream datasets.
 
 **Verified:** `atomic_write_bytes()` in `src/rag_evals/artifacts/io.py` uses
 temp file, `fsync`, `os.replace`. `execute_cleanup()` in
-`src/rag_evals/artifacts/cleanup.py` moves to `datasets/.trash/<type>/<id>-<timestamp>`.
+`src/rag_evals/artifacts/cleanup.py` moves to
+`<workspace>/results/datasets/.trash/<type>/<id>-<timestamp>-<uuid>`.
 
 ## Restore Procedure
 
-To restore a trashed dataset:
-
-1. Locate the trash directory: `datasets/.trash/<type>/<dataset-id>-<timestamp>`
-2. Move it back: `mv datasets/.trash/<type>/<dataset-id>-<timestamp> datasets/<type>/<dataset-id>`
-3. The dataset is now available again with all original artifacts intact
+The library provides validated `restore_dataset()` behavior, but there is no
+public restore CLI command yet. Do not manually move or rewrite trashed datasets
+without an approved recovery procedure. Trash remains under
+`<workspace>/results/datasets/.trash/` with all original artifacts intact.
 
 Permanent trash purge is outside MVP.

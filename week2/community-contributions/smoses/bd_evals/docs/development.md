@@ -4,8 +4,8 @@
 
 ## Environment
 
-The package targets Python `>=3.12,<3.13`. Runtime dependencies (per D013) are
-Pydantic 2, PyYAML 6, Jinja2 3.1, and Typer. Development tools are pytest,
+The package targets Python `>=3.12,<3.13`. Runtime dependencies are Pydantic 2,
+PyYAML 6, Jinja2 3.1, Typer, and HTTPX. Development tools are pytest,
 pytest-asyncio, pytest-cov, Ruff, mypy, and build.
 
 `bd_api` is an external local dependency. Do not modify it from this project and
@@ -51,6 +51,7 @@ src/rag_evals/
   cli.py               # Typer app and all advertised command dispatch
   errors.py            # 7 domain errors with stable exit codes 1-7
   logging.py           # structured logging with secret redaction
+  workspace.py         # external config/results workspace selection
   py.typed             # PEP 561 marker for mypy
   config/
     __init__.py
@@ -108,7 +109,8 @@ src/rag_evals/
 | `tests/test_adapter.py` | 17 | Fake retrieve/ask, retry, concurrency |
 | `tests/test_retrieval_stage.py` | 14 | Success, failure, retry, resume, placeholder rejection |
 | `tests/test_stages_integration.py` | 11 | Judgment, answer, reporting integration |
-| **Current total** | Run `python3.12 -m pytest` | Includes the files above and additional regression/functional tests |
+| `tests/test_workspace.py` | 12 | Workspace validation, boundaries, CLI/env selection, isolation |
+| **Current total** | **360** | Includes additional remediation and functional regression files |
 
 ## Test Strategy
 

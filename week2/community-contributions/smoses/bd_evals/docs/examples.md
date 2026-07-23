@@ -11,9 +11,9 @@ test:
   id: retrieval-example
   type: retrieval
 questions:
-  source: ../config/questions.yaml
+  source: ../questions.yaml
 knowledge_bases:
-  source: ../config/knowledge-bases.yaml
+  source: ../knowledge-bases.yaml
 selection:
   knowledge_bases:
     include: [kb_placeholder_1, kb_placeholder_2, kb_placeholder_3]
@@ -41,8 +41,9 @@ execution:
 **Verified:** This definition validates and plans offline:
 
 ```bash
-rag-evals validate eval_definitions/retrieval-example.yaml
-rag-evals plan eval_definitions/retrieval-example.yaml
+export RAG_EVALS_WORKSPACE="$(cd ../bd_evals_config_example && pwd)"
+rag-evals validate definitions/retrieval-example.yaml
+rag-evals plan definitions/retrieval-example.yaml
 ```
 
 Plan output: 2 questions x 3 KBs x 2 modes = 12 calls.
@@ -143,7 +144,7 @@ when merge is enabled. Excluded rows are visible in `matrix.excluded`.
 
 ## Config Files
 
-The following config files ship with the framework:
+The following files ship in `bd_evals_config_example/config/`:
 
 | File | Contents |
 |---|---|
@@ -151,7 +152,7 @@ The following config files ship with the framework:
 | `config/knowledge-bases.yaml` | 3 placeholder KBs (fixed, semantic, none) |
 | `config/answer-models.yaml` | 2 placeholder answer models |
 | `config/judge-models.yaml` | 3 placeholder judge models |
-| `eval_definitions/retrieval-example.yaml` | Example retrieval definition |
+| `config/definitions/retrieval-example.yaml` | Example retrieval definition |
 
 All placeholder values (`KB_REPLACE_ME_*`, `MODEL_REPLACE_ME_*`) validate and
 plan offline but are rejected by live execution.
