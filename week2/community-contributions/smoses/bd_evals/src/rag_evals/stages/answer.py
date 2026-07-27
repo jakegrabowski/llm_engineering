@@ -113,9 +113,11 @@ async def run_answer_stage(
     dry_run: bool = False,
     only_missing: bool = False,
     execution_bundle: ExecutionBundle | None = None,
+    config_root: Path | None = None,
 ) -> DatasetPath:
     """Run the answer generation stage."""
     logger.info("Starting answer generation stage")
+    template_root = config_root or project_root
 
     source = definition.source_dataset
     source_paths = DatasetPath(project_root, source.type, source.id)
@@ -189,6 +191,7 @@ async def run_answer_stage(
                 adapter,
                 definition,
                 project_root,
+                template_root,
                 semaphore,
             )
         except Exception as exc:
@@ -242,6 +245,7 @@ async def _execute_answer_row(
     adapter: ApiAdapter,
     definition: AnswerDefinition,
     project_root: Path,
+    template_root: Path,
     attempt_semaphore: asyncio.Semaphore,
 ) -> None:
     """Execute a single answer generation row."""
@@ -280,8 +284,8 @@ async def _execute_answer_row(
     }
 
     # Load and render templates
-    system_text = _load_template_file(pv.template.system_instructions, project_root)
-    user_template = _load_template_file(pv.template.user_message, project_root)
+    system_text = _load_template_file(pv.template.system_instructions, template_root)
+    user_template = _load_template_file(pv.template.user_message, template_root)
     for text in (system_text, user_template):
         validation = validate_template(text, Stage.ANSWER)
         if not validation.valid:

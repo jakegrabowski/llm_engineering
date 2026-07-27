@@ -118,12 +118,14 @@ async def run_judgment_stage(
     dry_run: bool = False,
     only_missing: bool = False,
     execution_bundle: ExecutionBundle | None = None,
+    config_root: Path | None = None,
 ) -> DatasetPath:
     """Run a judgment stage (retrieval or answer judgment).
 
     Reads source artifacts, renders templates, calls /ask, stores raw judge text.
     """
     logger.info("Starting %s stage", stage.value)
+    template_root = config_root or project_root
     source_paths = DatasetPath(project_root, source_dataset_type, source_dataset_id)
     source_artifacts = load_source_dataset(project_root, source_dataset_type, source_dataset_id)
 
@@ -203,6 +205,7 @@ async def run_judgment_stage(
                 definition,
                 stage,
                 project_root,
+                template_root,
                 semaphore,
             )
         except Exception as exc:
@@ -258,6 +261,7 @@ async def _execute_judgment_row(
     definition: Any,
     stage: Stage,
     project_root: Path,
+    template_root: Path,
     attempt_semaphore: asyncio.Semaphore,
 ) -> None:
     """Execute a single judgment row."""
@@ -303,8 +307,8 @@ async def _execute_judgment_row(
         template_vars["candidate_answer"] = candidate_answer
 
     # Load and validate templates
-    system_text = _load_template_file(pv.template.system_instructions, project_root)
-    user_template = _load_template_file(pv.template.user_message, project_root)
+    system_text = _load_template_file(pv.template.system_instructions, template_root)
+    user_template = _load_template_file(pv.template.user_message, template_root)
 
     for text in (system_text, user_template):
         validation = validate_template(text, stage)

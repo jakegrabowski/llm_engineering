@@ -15,7 +15,7 @@ python3.12 -m pip install -e ".[dev]"
 python3.12 -m pytest
 ```
 
-All 312 tests pass with no network access. No live API calls are made.
+All 360 tests pass with no network access. No live API calls are made.
 
 ### Run a Single File
 
@@ -61,7 +61,7 @@ decorator is needed.
 | File | Tests | What it covers |
 |---|---:|---|
 | `test_package.py` | 3 | Package import, `__version__`, top-level `--help` |
-| `test_cli.py` | 24 | All 12 commands respond to `--help`; implemented commands execute; stub commands exit with code 2 |
+| `test_cli.py` | 24 | All 12 commands respond to `--help` and execute through a selected workspace |
 | `test_errors.py` | 23 | Error hierarchy, stable exit codes 1–7, uniqueness, message preservation |
 | `test_logging.py` | 9 | Secret key detection, recursive redaction in flat/nested/list structures, non-mutation, passthrough |
 | `test_schemas.py` | 66 | Pydantic models for questions, KBs, models, API config, deployment, execution, output, selection, retrieval tuning, all 5 definition types, `parse_definition` dispatcher |
@@ -76,6 +76,13 @@ decorator is needed.
 | `test_adapter.py` | 17 | Fake adapter retrieve/ask success, call recording, determinism, configurable failures; retry executor (success first try, retry on retryable, no retry on non-retryable, max attempts exhausted, retry on 503, no retry on 400, jitter); concurrency semaphore (default 5, serial at 1, max-concurrent enforcement) |
 | `test_retrieval_stage.py` | 14 | Token estimate (`ceil(chars/4)`), full success reaching complete lifecycle, dry run, artifact content verification (context, estimated tokens, objective metrics), partial failure with continue-on-error, retry then success, placeholder KB rejection, resume missing artifacts, resume preserves existing bytes |
 | `test_stages_integration.py` | 11 | Retrieval judgment success and raw text storage, answer generation success with exact usage/frozen context hash/no retrieval call, report generation (CSV + Markdown), lineage join with judgments, CSV determinism, cost summary separation, zero adapter calls during reporting |
+| `test_cli_functional.py` | 4 | Offline ask-stage planning and workspace report output |
+| `test_final_scenario.py` | 3 | Multi-variant pipeline, fail-fast behavior, source verification failures |
+| `test_remediation_core.py` | 13 | Transactionality, races, retries, cleanup, adapter and status regressions |
+| `test_resolved_bundle.py` | 1 | Resolved input and prompt hashing |
+| `test_resolver_cache.py` | 2 | Repeated source reference equality |
+| `test_schema_guardrail.py` | 2 | Manifest schema migration guardrails |
+| `test_workspace.py` | 12 | Workspace validation, boundaries, CLI/env precedence, and isolation |
 
 ## Adding New Tests
 

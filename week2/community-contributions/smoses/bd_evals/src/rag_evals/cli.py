@@ -6,6 +6,7 @@ from typing import Annotated
 import typer
 
 from rag_evals.logging import setup_logging
+from rag_evals.workspace import Workspace
 
 app = typer.Typer(
     name="rag-evals",
@@ -16,6 +17,16 @@ app = typer.Typer(
 
 @app.callback()
 def main(
+    ctx: typer.Context,
+    workspace: Annotated[
+        Path | None,
+        typer.Option(
+            "--workspace",
+            envvar="RAG_EVALS_WORKSPACE",
+            show_envvar=True,
+            help="Evaluation workspace containing config/ and results/.",
+        ),
+    ] = None,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Enable verbose (DEBUG) logging."),
@@ -23,6 +34,36 @@ def main(
 ) -> None:
     """Bedrock RAG evaluation framework."""
     setup_logging("DEBUG" if verbose else "INFO")
+    ctx.obj = workspace
+
+
+def _require_workspace(ctx: typer.Context) -> Workspace:
+    """Return the selected workspace or exit with an actionable configuration error."""
+    from rag_evals.errors import ConfigError
+
+    if not isinstance(ctx.obj, Path):
+        typer.echo(
+            "Error: No evaluation workspace configured. "
+            "Pass --workspace PATH or set RAG_EVALS_WORKSPACE.",
+            err=True,
+        )
+        raise typer.Exit(code=ConfigError.exit_code)
+    try:
+        return Workspace.from_path(ctx.obj)
+    except ConfigError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=ConfigError.exit_code) from exc
+
+
+def _resolve_definition(workspace: Workspace, definition: Path) -> Path:
+    """Resolve a CLI definition argument or exit through the config error path."""
+    from rag_evals.errors import ConfigError
+
+    try:
+        return workspace.resolve_definition(definition)
+    except ConfigError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=ConfigError.exit_code) from exc
 
 
 DefinitionArg = Annotated[
@@ -44,6 +85,7 @@ DatasetIdArg = Annotated[
 
 
 def _run_ask_command(
+    workspace: Workspace,
     definition_path: Path,
     expected_stage: str,
     dry_run: bool,
@@ -67,21 +109,19 @@ def _run_ask_command(
         RetrievalJudgmentDefinition,
         Rubric,
     )
-    from rag_evals.config.validate_cmd import _find_project_root
     from rag_evals.errors import ConfigError, ExecutionError
     from rag_evals.planning.matrices import generate_ask_matrix
     from rag_evals.stages.answer import run_answer_stage
     from rag_evals.stages.judgment import run_judgment_stage
     from rag_evals.templates import Stage
 
-    root = _find_project_root(definition_path)
     try:
-        bundle = load_execution_bundle(definition_path, root)
+        bundle = load_execution_bundle(definition_path, workspace.config_root)
         definition = bundle.definition
         if definition.test.type != expected_stage:
             raise ConfigError(f"Expected {expected_stage} definition")
         source = definition.source_dataset  # type: ignore[union-attr]
-        descriptors = load_source_dataset(root, source.type, source.id)
+        descriptors = load_source_dataset(workspace.results_root, source.type, source.id)
         by_question: dict[str, Question] = {}
         for item in descriptors:
             by_question.setdefault(
@@ -114,7 +154,7 @@ def _run_ask_command(
 
     output = definition.output.dataset_id  # type: ignore[union-attr]
     selected = matrix.rows
-    output_paths = DatasetPath(root, _dataset_type(expected_stage), output)
+    output_paths = DatasetPath(workspace.results_root, _dataset_type(expected_stage), output)
     if only_missing and output_paths.base.exists():
         missing = set(get_missing_artifacts(output_paths))
         selected = [row for row in selected if row.artifact_id in missing]
@@ -136,13 +176,14 @@ def _run_ask_command(
     if isinstance(definition, AnswerDefinition):
         asyncio.run(
             run_answer_stage(
-                root,
+                workspace.results_root,
                 definition,
                 questions,
                 models,
                 adapter,
                 only_missing=only_missing,
                 execution_bundle=bundle,
+                config_root=workspace.config_root,
             )
         )
     elif isinstance(definition, (RetrievalJudgmentDefinition, AnswerJudgmentDefinition)):
@@ -153,7 +194,7 @@ def _run_ask_command(
         )
         asyncio.run(
             run_judgment_stage(
-                root,
+                workspace.results_root,
                 definition,
                 questions,
                 models,
@@ -163,6 +204,7 @@ def _run_ask_command(
                 stage,
                 only_missing=only_missing,
                 execution_bundle=bundle,
+                config_root=workspace.config_root,
             )
         )
 
@@ -177,6 +219,7 @@ def _dataset_type(stage: str) -> str:
 
 @app.command()
 def validate(
+    ctx: typer.Context,
     definition: DefinitionArg,
     format: Annotated[
         str,
@@ -186,11 +229,18 @@ def validate(
     """Resolve and validate configuration and templates."""
     from rag_evals.config.validate_cmd import validate_and_report
 
-    validate_and_report(definition, output_format=format)
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    validate_and_report(
+        definition_path,
+        output_format=format,
+        project_root=workspace.config_root,
+    )
 
 
 @app.command()
 def plan(
+    ctx: typer.Context,
     definition: DefinitionArg,
     format: Annotated[
         str,
@@ -200,11 +250,18 @@ def plan(
     """Show matrix, exclusions, IDs, and call counts."""
     from rag_evals.planning.plan_cmd import plan_and_report
 
-    plan_and_report(definition, output_format=format)
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    plan_and_report(
+        definition_path,
+        output_format=format,
+        project_root=workspace.config_root,
+    )
 
 
 @app.command(name="run-retrieval")
 def run_retrieval(
+    ctx: typer.Context,
     definition: DefinitionArg,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Plan only, no API calls.")] = False,
     only_missing: Annotated[
@@ -218,37 +275,50 @@ def run_retrieval(
     ] = None,
 ) -> None:
     """Build or resume a retrieval dataset."""
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    _run_retrieval_command(
+        workspace,
+        definition_path,
+        dry_run=dry_run,
+        only_missing=only_missing,
+        question_id=question_id,
+        approve_call_count=approve_call_count,
+    )
+
+
+def _run_retrieval_command(
+    workspace: Workspace,
+    definition: Path,
+    *,
+    dry_run: bool,
+    only_missing: bool,
+    question_id: str | None,
+    approve_call_count: int | None,
+) -> None:
+    """Execute retrieval command logic for direct runs and resume."""
     import asyncio
 
-    from rag_evals.config.resolver import SourceResolver, safe_load_yaml
+    from rag_evals.config.execution import load_execution_bundle
     from rag_evals.config.schemas import (
         KnowledgeBaseCatalog,
         QuestionCatalog,
         RetrievalDefinition,
-        parse_definition,
     )
-    from rag_evals.config.validate_cmd import _find_project_root
     from rag_evals.errors import ConfigError, ExecutionError
     from rag_evals.stages.retrieval import run_retrieval_stage
 
-    root = _find_project_root(definition)
-
     try:
-        raw_data = safe_load_yaml(definition)
-        defn = parse_definition(raw_data)
-
+        bundle = load_execution_bundle(definition, workspace.config_root)
+        defn = bundle.definition
         if not isinstance(defn, RetrievalDefinition):
-            test_type = raw_data.get("test", {}).get("type", "unknown")
+            test_type = defn.test.type
             typer.echo(
                 f"Error: Expected retrieval definition, got type '{test_type}'.",
                 err=True,
             )
             raise typer.Exit(code=ConfigError.exit_code)
-
-        resolver = SourceResolver(root)
-        resolved = resolver.resolve_definition(definition)
-        resolved_data = resolved.definition_data
-
+        resolved_data = bundle.resolved_definition
         questions = QuestionCatalog.model_validate(resolved_data["questions"])
         kbs = KnowledgeBaseCatalog.model_validate(resolved_data["knowledge_bases"])
     except ConfigError as exc:
@@ -286,7 +356,11 @@ def run_retrieval(
     if only_missing:
         from rag_evals.artifacts.store import DatasetPath, get_missing_artifacts
 
-        existing_paths = DatasetPath(root, "retrieval", defn.output.dataset_id)
+        existing_paths = DatasetPath(
+            workspace.results_root,
+            "retrieval",
+            defn.output.dataset_id,
+        )
         if existing_paths.base.exists():
             missing = set(get_missing_artifacts(existing_paths))
             selected_rows = [row for row in selected_rows if row.artifact_id in missing]
@@ -336,13 +410,14 @@ def run_retrieval(
     try:
         asyncio.run(
             run_retrieval_stage(
-                project_root=root,
+                project_root=workspace.results_root,
                 definition=defn,
                 questions=questions,
                 knowledge_bases=kbs,
                 adapter=adapter,
                 only_missing=only_missing,
                 question_id_filter=question_id,
+                execution_bundle=bundle,
             )
         )
     except Exception as exc:
@@ -352,39 +427,70 @@ def run_retrieval(
 
 @app.command(name="judge-retrieval")
 def judge_retrieval(
+    ctx: typer.Context,
     definition: DefinitionArg,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     only_missing: Annotated[bool, typer.Option("--only-missing")] = False,
     approve_call_count: Annotated[int | None, typer.Option("--approve-call-count")] = None,
 ) -> None:
     """Judge saved retrieval artifacts."""
-    _run_ask_command(definition, "retrieval_judgment", dry_run, only_missing, approve_call_count)
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    _run_ask_command(
+        workspace,
+        definition_path,
+        "retrieval_judgment",
+        dry_run,
+        only_missing,
+        approve_call_count,
+    )
 
 
 @app.command(name="generate-answers")
 def generate_answers(
+    ctx: typer.Context,
     definition: DefinitionArg,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     only_missing: Annotated[bool, typer.Option("--only-missing")] = False,
     approve_call_count: Annotated[int | None, typer.Option("--approve-call-count")] = None,
 ) -> None:
     """Generate answers from frozen retrieval context."""
-    _run_ask_command(definition, "answer", dry_run, only_missing, approve_call_count)
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    _run_ask_command(
+        workspace,
+        definition_path,
+        "answer",
+        dry_run,
+        only_missing,
+        approve_call_count,
+    )
 
 
 @app.command(name="judge-answers")
 def judge_answers(
+    ctx: typer.Context,
     definition: DefinitionArg,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     only_missing: Annotated[bool, typer.Option("--only-missing")] = False,
     approve_call_count: Annotated[int | None, typer.Option("--approve-call-count")] = None,
 ) -> None:
     """Judge saved answer artifacts."""
-    _run_ask_command(definition, "answer_judgment", dry_run, only_missing, approve_call_count)
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    _run_ask_command(
+        workspace,
+        definition_path,
+        "answer_judgment",
+        dry_run,
+        only_missing,
+        approve_call_count,
+    )
 
 
 @app.command()
 def report(
+    ctx: typer.Context,
     definition: DefinitionArg,
     format: Annotated[
         str,
@@ -393,17 +499,22 @@ def report(
 ) -> None:
     """Produce CSV and Markdown reports."""
     from rag_evals.config.resolver import safe_load_yaml
-    from rag_evals.config.validate_cmd import _find_project_root
+    from rag_evals.errors import ConfigError
     from rag_evals.reporting.reports import generate_report
 
-    root = _find_project_root(definition)
-    data = safe_load_yaml(definition)
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    data = safe_load_yaml(definition_path)
     if format not in {"csv", "markdown", "both", "text", "json"}:
         raise typer.BadParameter("format must be csv, markdown, both, text, or json")
     datasets = data.get("datasets", {})
-    output_dir = root / data.get("output_dir", "reports/latest")
+    try:
+        output_dir = workspace.resolve_report_output(Path(data.get("output_dir", "latest")))
+    except ConfigError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=ConfigError.exit_code) from exc
     result = generate_report(
-        root,
+        workspace.results_root,
         output_dir,
         datasets.get("retrieval"),
         datasets.get("retrieval_judgments"),
@@ -416,43 +527,55 @@ def report(
 
 @app.command()
 def compare(
+    ctx: typer.Context,
     definition: DefinitionArg,
     format: Annotated[str, typer.Option("--format")] = "csv",
 ) -> None:
     """Compare selected datasets."""
     from rag_evals.config.resolver import safe_load_yaml
     from rag_evals.config.schemas import CompareDefinition, parse_definition
-    from rag_evals.config.validate_cmd import _find_project_root
     from rag_evals.reporting.reports import join_lineage, render_csv, render_markdown
 
-    parsed = parse_definition(safe_load_yaml(definition))
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    parsed = parse_definition(safe_load_yaml(definition_path))
     if not isinstance(parsed, CompareDefinition):
         raise typer.BadParameter("compare requires a compare definition")
-    root = _find_project_root(definition)
     rows = []
     for entry in parsed.entries:
         if entry.dataset.type == "retrieval":
-            rows.extend(join_lineage(root, retrieval_dataset_id=entry.dataset.id))
+            rows.extend(join_lineage(workspace.results_root, retrieval_dataset_id=entry.dataset.id))
         elif entry.dataset.type == "retrieval_judgments":
-            rows.extend(join_lineage(root, retrieval_judgment_dataset_id=entry.dataset.id))
+            rows.extend(
+                join_lineage(
+                    workspace.results_root,
+                    retrieval_judgment_dataset_id=entry.dataset.id,
+                )
+            )
         elif entry.dataset.type == "answers":
-            rows.extend(join_lineage(root, answer_dataset_id=entry.dataset.id))
+            rows.extend(join_lineage(workspace.results_root, answer_dataset_id=entry.dataset.id))
         elif entry.dataset.type == "answer_judgments":
-            rows.extend(join_lineage(root, answer_judgment_dataset_id=entry.dataset.id))
+            rows.extend(
+                join_lineage(
+                    workspace.results_root,
+                    answer_judgment_dataset_id=entry.dataset.id,
+                )
+            )
     typer.echo(render_markdown(rows) if format == "markdown" else render_csv(rows))
 
 
 @app.command()
 def status(
+    ctx: typer.Context,
     dataset_type: DatasetTypeArg,
     dataset_id: DatasetIdArg,
 ) -> None:
     """Inspect dataset lifecycle and work counts."""
     from rag_evals.artifacts.store import DatasetPath, get_status
-    from rag_evals.config.validate_cmd import _find_project_root
 
-    root = _find_project_root(Path("."))
-    paths = DatasetPath(root, dataset_type, dataset_id)
+    workspace = _require_workspace(ctx)
+    _validate_dataset_reference(dataset_type, dataset_id)
+    paths = DatasetPath(workspace.results_root, dataset_type, dataset_id)
 
     if not paths.base.exists():
         typer.echo(f"Dataset not found: {dataset_type}/{dataset_id}", err=True)
@@ -473,33 +596,51 @@ def status(
 
 @app.command()
 def resume(
+    ctx: typer.Context,
     definition: DefinitionArg,
     approve_call_count: Annotated[int | None, typer.Option("--approve-call-count")] = None,
 ) -> None:
     """Resume eligible missing or failed work."""
     from rag_evals.config.resolver import safe_load_yaml
 
-    stage = safe_load_yaml(definition).get("test", {}).get("type")
+    workspace = _require_workspace(ctx)
+    definition_path = _resolve_definition(workspace, definition)
+    stage = safe_load_yaml(definition_path).get("test", {}).get("type")
     if stage == "retrieval":
-        run_retrieval(definition, False, True, None, approve_call_count)
+        _run_retrieval_command(
+            workspace,
+            definition_path,
+            dry_run=False,
+            only_missing=True,
+            question_id=None,
+            approve_call_count=approve_call_count,
+        )
     elif stage in {"retrieval_judgment", "answer", "answer_judgment"}:
-        _run_ask_command(definition, stage, False, True, approve_call_count)
+        _run_ask_command(
+            workspace,
+            definition_path,
+            stage,
+            False,
+            True,
+            approve_call_count,
+        )
     else:
         raise typer.BadParameter(f"Unsupported resumable stage: {stage}")
 
 
 @app.command()
 def seal(
+    ctx: typer.Context,
     dataset_type: DatasetTypeArg,
     dataset_id: DatasetIdArg,
 ) -> None:
     """Make a complete dataset immutable."""
     from rag_evals.artifacts.store import DatasetPath, Lifecycle, transition_lifecycle
-    from rag_evals.config.validate_cmd import _find_project_root
     from rag_evals.errors import ArtifactError
 
-    root = _find_project_root(Path("."))
-    paths = DatasetPath(root, dataset_type, dataset_id)
+    workspace = _require_workspace(ctx)
+    _validate_dataset_reference(dataset_type, dataset_id)
+    paths = DatasetPath(workspace.results_root, dataset_type, dataset_id)
 
     if not paths.base.exists():
         typer.echo(f"Dataset not found: {dataset_type}/{dataset_id}", err=True)
@@ -516,6 +657,7 @@ def seal(
 
 @app.command(name="clean-dataset")
 def clean_dataset(
+    ctx: typer.Context,
     dataset_type: DatasetTypeArg,
     dataset_id: DatasetIdArg,
     confirm_dataset_id: Annotated[
@@ -525,13 +667,13 @@ def clean_dataset(
 ) -> None:
     """Plan or trash an eligible dataset."""
     from rag_evals.artifacts.cleanup import execute_cleanup, plan_cleanup
-    from rag_evals.config.validate_cmd import _find_project_root
     from rag_evals.errors import ArtifactError
 
-    root = _find_project_root(Path("."))
+    workspace = _require_workspace(ctx)
+    _validate_dataset_reference(dataset_type, dataset_id)
 
     if confirm_dataset_id is None:
-        plan = plan_cleanup(root, dataset_type, dataset_id)
+        plan = plan_cleanup(workspace.results_root, dataset_type, dataset_id)
         typer.echo(f"Dataset: {plan.dataset_type}/{plan.dataset_id}")
         typer.echo(f"Exists: {plan.exists}")
         if plan.exists:
@@ -552,8 +694,29 @@ def clean_dataset(
         return
 
     try:
-        trash_path = execute_cleanup(root, dataset_type, dataset_id, confirm_dataset_id)
+        trash_path = execute_cleanup(
+            workspace.results_root,
+            dataset_type,
+            dataset_id,
+            confirm_dataset_id,
+        )
         typer.echo(f"Moved to trash: {trash_path}")
     except ArtifactError as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=5) from exc
+
+
+def _validate_dataset_reference(dataset_type: str, dataset_id: str) -> None:
+    """Reject malformed lifecycle command arguments before constructing paths."""
+    import re
+
+    from rag_evals.artifacts.store import DATASET_TYPES
+    from rag_evals.config.schemas import DATASET_ID_PATTERN
+    from rag_evals.errors import ConfigError
+
+    if dataset_type not in DATASET_TYPES:
+        typer.echo(f"Error: Invalid dataset type: {dataset_type}", err=True)
+        raise typer.Exit(code=ConfigError.exit_code)
+    if re.fullmatch(DATASET_ID_PATTERN, dataset_id) is None:
+        typer.echo(f"Error: Invalid dataset ID: {dataset_id}", err=True)
+        raise typer.Exit(code=ConfigError.exit_code)

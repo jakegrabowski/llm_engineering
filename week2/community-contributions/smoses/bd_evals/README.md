@@ -49,15 +49,35 @@ Live stage commands run a `bd_api` compatibility preflight before creating a
 dataset. Do not modify `bd_api` from this project. Offline validation, planning,
 reporting, and tests do not require network access.
 
+## Select a Workspace
+
+Package source is separate from evaluation configuration and results. Every
+command requires an external workspace containing `config/` and `results/`:
+
+```bash
+export RAG_EVALS_WORKSPACE="$(cd ../bd_evals_config_example && pwd)"
+```
+
+Or pass it explicitly before the command:
+
+```bash
+rag-evals --workspace ../bd_evals_config_example --help
+```
+
+The explicit option overrides `RAG_EVALS_WORKSPACE`. Commands fail closed when
+neither is configured. Definition arguments resolve relative to the selected
+workspace's `config/` directory. See `docs/workspaces.md`.
+
 ## Configure
 
-The shipped files are safe examples, not production configuration:
+The sibling `bd_evals_config_example` workspace contains safe examples, not
+production configuration:
 
 - `config/questions.yaml`: questions and optional rubrics
 - `config/knowledge-bases.yaml`: Knowledge Base catalog
 - `config/answer-models.yaml`: answer model catalog
 - `config/judge-models.yaml`: judge model catalog
-- `eval_definitions/retrieval-example.yaml`: retrieval evaluation definition
+- `config/definitions/retrieval-example.yaml`: retrieval evaluation definition
 
 Catalog and definition files use `schema_version: 1`. Replace values such as
 `KB_REPLACE_ME_*` and `MODEL_REPLACE_ME_*` with real identifiers before a live
@@ -75,16 +95,16 @@ Always resolve and validate inputs first, then inspect the deterministic matrix
 and exact call count:
 
 ```bash
-rag-evals validate eval_definitions/retrieval-example.yaml
-rag-evals plan eval_definitions/retrieval-example.yaml
-rag-evals run-retrieval eval_definitions/retrieval-example.yaml --dry-run
+rag-evals validate definitions/retrieval-example.yaml
+rag-evals plan definitions/retrieval-example.yaml
+rag-evals run-retrieval definitions/retrieval-example.yaml --dry-run
 ```
 
 `validate` and `plan` make no API calls. Every live run requires an explicit count
 that exactly matches the current selected work:
 
 ```bash
-rag-evals run-retrieval eval_definitions/retrieval-example.yaml \
+rag-evals run-retrieval definitions/retrieval-example.yaml \
   --approve-call-count 12
 ```
 
@@ -107,7 +127,8 @@ rag-evals seal retrieval my-dataset
 
 Resume selects eligible missing or failed work without rewriting successful
 artifacts. Sealed datasets reject mutation. Cleanup is a two-step, exact-ID
-operation and moves eligible data to `datasets/.trash` rather than deleting it:
+operation and moves eligible data to `results/datasets/.trash` rather than
+deleting it:
 
 ```bash
 rag-evals clean-dataset retrieval my-dataset
@@ -130,8 +151,9 @@ rag-evals report path/to/report-definition.yaml --format both
 rag-evals compare path/to/compare-definition.yaml --format markdown
 ```
 
-Report output defaults to `reports/latest/`. See `docs/artifact-model.md` and
-`docs/cli-reference.md` for formats and command details.
+Report output defaults to `<workspace>/results/reports/latest/`. See
+`docs/artifact-model.md` and `docs/cli-reference.md` for formats and command
+details.
 
 ## Tests and Documentation
 

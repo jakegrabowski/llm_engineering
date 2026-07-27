@@ -37,6 +37,18 @@ retrieval execution --> retrieval dataset --> retrieval judgments
 - **Verified:** retrieval, answers, and judgments are separate datasets linked
   by IDs and SHA-256 hashes.
 
+## Workspace Boundary
+
+Installed package code does not contain user configuration or generated results.
+The global `--workspace PATH` option, or `RAG_EVALS_WORKSPACE`, selects a
+workspace with `config/` and `results/`. Explicit CLI selection takes precedence
+and commands fail closed when neither is configured.
+
+Definitions and their sources remain below `<workspace>/config`. Artifacts,
+trash, and reports remain below `<workspace>/results`. All 12 commands use this
+same boundary, allowing multiple isolated workspaces to share one installed
+package.
+
 ## Frozen Retrieval
 
 Answer generation loads context from a saved retrieval artifact and renders it
@@ -62,10 +74,10 @@ They never replace the saved retrieval artifact as answer provenance.
 ```text
 src/rag_evals/
   __init__.py          # version 0.1.0
-  cli.py               # Typer app: validate, plan, run-retrieval, report,
-                       #   status, seal, clean-dataset implemented
+  cli.py               # Typer app and all 12 workspace-aware commands
   errors.py            # 7 domain errors with stable exit codes 1-7
   logging.py           # structured logging with secret redaction
+  workspace.py         # config/results workspace and path boundaries
   py.typed             # PEP 561 marker
   config/
     __init__.py

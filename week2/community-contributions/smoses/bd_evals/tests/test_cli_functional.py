@@ -55,8 +55,8 @@ selection: {{{model_selection}: {{include: [model]}}}}
 prompt_variants:
   - id: prompt
     template:
-      system_instructions: "System {{{{ question_id }}}}"
-      user_message: "{{{{ question }}}}"
+      system_instructions: prompts/system.md
+      user_message: prompts/user.yaml
 inference_variants:
   - id: inference
     inference_config: {{temperature: 0.0}}
@@ -65,6 +65,15 @@ output: {{dataset_id: {output}}}
 """
     )
     return path
+
+
+def _workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
+    root = tmp_path / "workspace"
+    config_root = root / "config"
+    results_root = root / "results"
+    config_root.mkdir(parents=True)
+    results_root.mkdir()
+    return root, config_root, results_root
 
 
 @pytest.mark.parametrize(
@@ -78,25 +87,35 @@ output: {{dataset_id: {output}}}
 def test_f005_ask_commands_plan_functionally_offline(
     tmp_path: Path, command: str, stage: str, source_type: str, source_id: str
 ) -> None:
-    (tmp_path / "pyproject.toml").write_text("")
-    (tmp_path / "models.yaml").write_text(
+    workspace, config_root, results_root = _workspace(tmp_path)
+    (config_root / "models.yaml").write_text(
         "schema_version: 1\nmodels:\n  - id: model\n    model_id: actual-model\n"
     )
-    _source_dataset(tmp_path, "retrieval", "ret", "a")
-    _source_dataset(tmp_path, "answers", "answers-source", "b")
-    definition = _definition(tmp_path, stage, source_type, source_id)
-    result = runner.invoke(app, [command, str(definition), "--dry-run"])
+    prompts = config_root / "prompts"
+    prompts.mkdir()
+    (prompts / "system.md").write_text("System {{ question_id }}")
+    (prompts / "user.yaml").write_text("template: '{{ question }}'\n")
+    _source_dataset(results_root, "retrieval", "ret", "a")
+    _source_dataset(results_root, "answers", "answers-source", "b")
+    definition = _definition(config_root, stage, source_type, source_id)
+    result = runner.invoke(
+        app,
+        ["--workspace", str(workspace), command, definition.name, "--dry-run"],
+    )
     assert result.exit_code == 0, result.output
     assert "Planned calls: 1" in result.output
     assert "No API calls made" in result.output
 
 
 def test_f006_report_cli_honors_markdown_format(tmp_path: Path) -> None:
-    (tmp_path / "pyproject.toml").write_text("")
-    _source_dataset(tmp_path, "retrieval", "ret", "a")
-    definition = tmp_path / "report.yaml"
-    definition.write_text("datasets:\n  retrieval: ret\noutput_dir: reports/result\n")
-    result = runner.invoke(app, ["report", str(definition), "--format", "markdown"])
+    workspace, config_root, results_root = _workspace(tmp_path)
+    _source_dataset(results_root, "retrieval", "ret", "a")
+    definition = config_root / "report.yaml"
+    definition.write_text("datasets:\n  retrieval: ret\noutput_dir: result\n")
+    result = runner.invoke(
+        app,
+        ["--workspace", str(workspace), "report", definition.name, "--format", "markdown"],
+    )
     assert result.exit_code == 0, result.output
-    assert (tmp_path / "reports/result/report.md").exists()
-    assert not (tmp_path / "reports/result/report.csv").exists()
+    assert (results_root / "reports/result/report.md").exists()
+    assert not (results_root / "reports/result/report.csv").exists()
