@@ -157,6 +157,10 @@ api:
 Environment variable names must be uppercase letters, digits, and underscores.
 Environment values must never enter snapshots, logs, manifests, or artifacts.
 
+Values are read from the process environment, which is populated from
+`<workspace>/.env` and `<workspace>/../.env` if present. Shell exports take
+precedence. See `workspaces.md`.
+
 **Verified:** `ApiConfig` validates the env var name pattern and rejects extra
 fields. `redact()` in `src/rag_evals/logging.py` recursively redacts values
 whose keys match `key`, `token`, `secret`, `password`, or `credential`.

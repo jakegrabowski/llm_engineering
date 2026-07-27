@@ -45,6 +45,11 @@ export PYTHONPATH="$(cd .. && pwd):${PYTHONPATH:-}"
 python3.12 -c "import bd_api; print(bd_api.__file__)"
 ```
 
+This checkout instead uses a shared, git-ignored `smoses/.venv` with a
+`site-packages/_bd_api_path.pth` file holding the `smoses` path, so `bd_api`
+imports from any working directory without exporting `PYTHONPATH`. Recreate that
+`.pth` file if the virtual environment is rebuilt.
+
 Live stage commands run a `bd_api` compatibility preflight before creating a
 dataset. Do not modify `bd_api` from this project. Offline validation, planning,
 reporting, and tests do not require network access.
@@ -67,6 +72,20 @@ rag-evals --workspace ../bd_evals_config_example --help
 The explicit option overrides `RAG_EVALS_WORKSPACE`. Commands fail closed when
 neither is configured. Definition arguments resolve relative to the selected
 workspace's `config/` directory. See `docs/workspaces.md`.
+
+## Secrets
+
+Commands load `<workspace>/.env` and then `<workspace>/../.env`, if present,
+without overriding variables already exported in the shell. A single untracked
+file beside the workspaces therefore serves every workspace and the `bd_api`
+helper scripts:
+
+```text
+BD_API_BASE_URL=<service base URL>
+BD_API_KEY=<service API key>
+```
+
+Definitions reference these names, never their values.
 
 ## Configure
 

@@ -77,4 +77,21 @@ The example workspace uses rejected placeholder identifiers and is safe only for
 
 ## Secrets
 
-Workspaces do not load `.env` automatically. Export API values in the shell or provide them through an external secret manager. Definitions contain environment-variable names only. Secret values must never enter configuration snapshots, artifacts, reports, or logs.
+Workspaces load environment values from `.env` files, searched most specific
+first:
+
+1. `<workspace>/.env`
+2. `<workspace>/../.env`
+
+Both files are applied without overriding variables already present in the
+process environment, so an explicit shell export always wins, and a
+workspace-local file wins over one shared between sibling workspaces. No other
+location is searched, and a missing file is not an error.
+
+A single shared file in the parent directory therefore serves every sibling
+workspace as well as the `bd_api` helper scripts, which load the same file
+through `python-dotenv`.
+
+Definitions contain environment-variable names only. Secret values must never
+enter configuration snapshots, artifacts, reports, or logs. `.env` files must
+stay untracked.

@@ -39,6 +39,7 @@ def main(
 
 def _require_workspace(ctx: typer.Context) -> Workspace:
     """Return the selected workspace or exit with an actionable configuration error."""
+    from rag_evals.env import load_workspace_env
     from rag_evals.errors import ConfigError
 
     if not isinstance(ctx.obj, Path):
@@ -49,10 +50,12 @@ def _require_workspace(ctx: typer.Context) -> Workspace:
         )
         raise typer.Exit(code=ConfigError.exit_code)
     try:
-        return Workspace.from_path(ctx.obj)
+        workspace = Workspace.from_path(ctx.obj)
     except ConfigError as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=ConfigError.exit_code) from exc
+    load_workspace_env(workspace)
+    return workspace
 
 
 def _resolve_definition(workspace: Workspace, definition: Path) -> Path:
