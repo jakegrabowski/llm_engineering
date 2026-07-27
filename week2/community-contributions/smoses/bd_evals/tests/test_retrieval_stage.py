@@ -1,11 +1,12 @@
 """Integration tests for the retrieval stage with fake adapter."""
 
+import json
 from pathlib import Path
 
 import pytest
 
 from rag_evals.api.fake_adapter import FakeAdapter
-from rag_evals.api.protocol import AdapterError
+from rag_evals.api.protocol import AdapterError, RetrieveRequest, RetrieveResponse
 from rag_evals.artifacts.store import get_status
 from rag_evals.config.schemas import (
     ApiConfig,
@@ -25,6 +26,7 @@ from rag_evals.config.schemas import (
 )
 from rag_evals.errors import ArtifactError
 from rag_evals.stages.retrieval import (
+    detect_mode_fallback,
     estimate_tokens,
     run_retrieval_stage,
 )
@@ -98,6 +100,118 @@ class TestEstimateTokens:
     def test_long(self) -> None:
         text = "x" * 100
         assert estimate_tokens(text) == 25  # ceil(100/4) = 25
+
+
+class FallbackAdapter(FakeAdapter):
+    """Fake adapter whose retrieval silently degrades to standard mode."""
+
+    async def retrieve(self, request: RetrieveRequest) -> RetrieveResponse:
+        response = await super().retrieve(request)
+        response.retrieval_metadata["effective_mode"] = "standard"
+        response.retrieval_metadata["fallback_used"] = True
+        response.retrieval_metadata["fallback_reason"] = "rerank model unavailable"
+        return response
+
+
+class TestDetectModeFallback:
+    def test_matching_modes_pass(self) -> None:
+        metadata = {"requested_mode": "rerank", "effective_mode": "rerank", "fallback_used": False}
+        assert detect_mode_fallback("rerank", metadata) is None
+
+    def test_differing_modes_detected(self) -> None:
+        metadata = {"requested_mode": "rerank", "effective_mode": "standard"}
+        reason = detect_mode_fallback("rerank", metadata)
+        assert reason is not None
+        assert "requested 'rerank'" in reason and "'standard'" in reason
+
+    def test_fallback_reason_included(self) -> None:
+        metadata = {
+            "requested_mode": "rerank",
+            "effective_mode": "standard",
+            "fallback_reason": "rerank model unavailable",
+        }
+        reason = detect_mode_fallback("rerank", metadata)
+        assert reason is not None and "rerank model unavailable" in reason
+
+    def test_fallback_flag_alone_detected(self) -> None:
+        metadata = {"requested_mode": "rerank", "effective_mode": "rerank", "fallback_used": True}
+        assert detect_mode_fallback("rerank", metadata) is not None
+
+    def test_absent_metadata_cannot_be_checked(self) -> None:
+        assert detect_mode_fallback("rerank", {}) is None
+
+    def test_requested_mode_falls_back_to_row_mode(self) -> None:
+        assert detect_mode_fallback("rerank", {"effective_mode": "standard"}) is not None
+
+
+def _rerank_definition(dataset_id: str = "test-rerank", allow: bool = False) -> RetrievalDefinition:
+    definition = _make_definition(dataset_id)
+    return definition.model_copy(
+        update={
+            "retrieval": RetrievalTuning(
+                modes=["rerank"], candidate_counts=[10], result_counts=[3]
+            ),
+            "execution": definition.execution.model_copy(update={"allow_mode_fallback": allow}),
+        }
+    )
+
+
+class TestRetrievalModeFallbackRejection:
+    @pytest.mark.asyncio
+    async def test_fallback_rows_are_failed_not_stored(self, project_root: Path) -> None:
+        paths = await run_retrieval_stage(
+            project_root=project_root,
+            definition=_rerank_definition(),
+            questions=_make_questions(),
+            knowledge_bases=_make_kbs(),
+            adapter=FallbackAdapter(),
+        )
+        status = get_status(paths)
+        assert status["successful_count"] == 0
+        assert status["failed_count"] == 4
+        assert status["lifecycle"] != "complete"
+
+    @pytest.mark.asyncio
+    async def test_failure_record_explains_and_keeps_cost(self, project_root: Path) -> None:
+        paths = await run_retrieval_stage(
+            project_root=project_root,
+            definition=_rerank_definition(),
+            questions=_make_questions(),
+            knowledge_bases=_make_kbs(),
+            adapter=FallbackAdapter(),
+        )
+        record = json.loads(sorted(paths.failures_dir.rglob("*.json"))[0].read_text())
+        assert record["error_type"] == "retrieval_mode_fallback"
+        assert record["retryable"] is False
+        assert "rerank model unavailable" in record["error_message"]
+        assert record["retrieval_metadata"]["effective_mode"] == "standard"
+        assert "cost" in record
+
+    @pytest.mark.asyncio
+    async def test_opt_in_allows_fallback(self, project_root: Path) -> None:
+        paths = await run_retrieval_stage(
+            project_root=project_root,
+            definition=_rerank_definition(allow=True),
+            questions=_make_questions(),
+            knowledge_bases=_make_kbs(),
+            adapter=FallbackAdapter(),
+        )
+        status = get_status(paths)
+        assert status["successful_count"] == 4
+        assert status["lifecycle"] == "complete"
+
+    @pytest.mark.asyncio
+    async def test_honest_adapter_is_unaffected(self, project_root: Path) -> None:
+        paths = await run_retrieval_stage(
+            project_root=project_root,
+            definition=_rerank_definition(),
+            questions=_make_questions(),
+            knowledge_bases=_make_kbs(),
+            adapter=FakeAdapter(),
+        )
+        status = get_status(paths)
+        assert status["successful_count"] == 4
+        assert status["failed_count"] == 0
 
 
 class TestRetrievalStageSuccess:

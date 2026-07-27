@@ -271,6 +271,7 @@ class ExecutionConfig(_StrictModel):
     concurrency: int = Field(default=5, ge=1)
     continue_on_error: bool = True
     retries: RetryConfig = Field(default_factory=RetryConfig)
+    allow_mode_fallback: bool = False
 
 
 class OutputConfig(_StrictModel):

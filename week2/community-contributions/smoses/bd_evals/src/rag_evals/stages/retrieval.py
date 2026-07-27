@@ -115,6 +115,30 @@ class RetrievalArtifact:
         }
 
 
+def detect_mode_fallback(requested_mode: str, metadata: dict[str, Any]) -> str | None:
+    """Return a reason when retrieval did not run in the requested mode.
+
+    A silently degraded mode invalidates any comparison between modes, so it is
+    treated as a row failure rather than recorded and averaged. Returns None when
+    the API reports no mode information, because an absent field cannot be checked.
+    """
+    effective = str(metadata.get("effective_mode") or "")
+    reported = str(metadata.get("requested_mode") or "") or requested_mode
+    reason = metadata.get("fallback_reason")
+    suffix = f" (reason: {reason})" if reason else ""
+    if effective and reported and effective != reported:
+        return (
+            f"Retrieval mode fallback: requested '{reported}' but effective "
+            f"mode was '{effective}'{suffix}"
+        )
+    if metadata.get("fallback_used"):
+        return (
+            f"Retrieval reported fallback_used with requested '{reported}' and "
+            f"effective '{effective or 'unknown'}'{suffix}"
+        )
+    return None
+
+
 def build_retrieval_artifact(
     row: RetrievalRow,
     response: RetrieveResponse,
@@ -358,6 +382,37 @@ async def _execute_retrieval_row(
     ]
 
     if result.success:
+        fallback_reason = (
+            None
+            if definition.execution.allow_mode_fallback
+            else detect_mode_fallback(row.mode, result.response.retrieval_metadata)
+        )
+        if fallback_reason is not None:
+            append_failure(
+                paths,
+                row.artifact_id,
+                len(attempt_records),
+                {
+                    "error_type": "retrieval_mode_fallback",
+                    "error_message": fallback_reason,
+                    "retryable": False,
+                    "attempts": attempt_records,
+                    "retrieval_metadata": result.response.retrieval_metadata,
+                    "cost": result.response.cost,
+                },
+            )
+            if definition.execution.continue_on_error:
+                logger.warning(
+                    "Row rejected for mode fallback: %s/%s/%s: %s",
+                    row.question_id,
+                    row.kb_catalog_id,
+                    row.mode,
+                    fallback_reason,
+                )
+                return
+            raise ExecutionError(
+                f"Row rejected: {row.question_id}/{row.kb_catalog_id}/{row.mode}: {fallback_reason}"
+            )
         artifact = build_retrieval_artifact(
             row=row,
             response=result.response,

@@ -63,6 +63,12 @@ Generates the deterministic matrix, prints dimensions, selected IDs, exclusions,
 per-row artifact IDs, total call count, and the required `--approve-call-count`
 value.
 
+Ask-stage definitions (`retrieval_judgment`, `answer`, `answer_judgment`) have no
+question catalog: their questions and rubrics are rebuilt from the source dataset,
+which must be `complete` or `sealed`. Their plan reports a `source_artifacts`
+dimension, and the call count equals source artifacts x models x prompt variants x
+inference variants, matching the corresponding `--dry-run`.
+
 ### run-retrieval
 
 ```bash
@@ -89,6 +95,51 @@ Joins lineage across datasets and generates
 `<workspace>/results/reports/latest/report.csv` and `report.md`. Makes zero API
 calls.
 
+The report definition lists datasets, an output directory, and an optional
+`scoring` block:
+
+```yaml
+datasets:
+  retrieval: retrieval-smoke-001
+  retrieval_judgments: retrieval-judge-smoke-001
+output_dir: smoke
+scoring:
+  retrieval_judgment:
+    parser: json
+    minimum: 1
+    maximum: 5
+    criteria: [criterion_one, criterion_two]
+    comment_field: comments
+    source_assessment_field: source_assessments
+```
+
+Scores are parsed from the immutable raw judge text on every run, so criteria can
+be changed and the report regenerated without new API calls. Each declared
+criterion becomes a `retrieval_score_<name>` CSV column, plus a code-computed
+`retrieval_score_total`; any total reported by the judge is ignored. Missing,
+non-integer, or out-of-range values set `retrieval_parse_status` to `failed` with
+`retrieval_parse_error` explaining why, and never produce a guessed score.
+`answer_judgment` scoring works the same way.
+
+CSV text columns are not truncated, and rows include chunking metadata, effective
+mode, fallback state, dedup counts, relevance-score statistics, and estimated
+context tokens so a spreadsheet pivot can aggregate per configuration.
+
+Optional `source_assessment_field` names a JSON array in which the judge classifies
+each retrieved source as `relevant`, `partial`, or `irrelevant`:
+
+```json
+"source_assessments": [{"index": 1, "relevance": "relevant"},
+                       {"index": 2, "relevance": "irrelevant"}]
+```
+
+Counts and the ratio are then computed in code, not by the judge, and reported as
+`judged_source_count`, `judged_sources_relevant`, `judged_sources_partial`,
+`judged_sources_irrelevant`, and `judged_relevance_ratio`
+(`relevant + 0.5 * partial`, divided by the source count). A missing or malformed
+enumeration sets `judged_sources_status` to `failed` with `judged_sources_error`,
+leaves the ratio empty, and does not affect criterion scores.
+
 ### status
 
 ```bash
@@ -97,7 +148,6 @@ rag-evals status TYPE DATASET_ID
 
 Displays lifecycle (`building`/`complete`/`sealed`/`failed`), planned count,
 successful count, failed count, and missing count.
-
 ### seal
 
 ```bash

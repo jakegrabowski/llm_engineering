@@ -17,6 +17,12 @@ from rag_evals.artifacts.store import DatasetPath
 from rag_evals.errors import ArtifactError
 from rag_evals.logging import get_logger
 from rag_evals.planning.identity import canonical_hash
+from rag_evals.reporting.scoring import (
+    PARSE_FAILED,
+    PARSE_NOT_CONFIGURED,
+    ScoringSpec,
+    parse_judgment,
+)
 
 logger = get_logger("rag_evals.reporting")
 
@@ -31,9 +37,21 @@ class JoinedRow:
     retrieval_artifact_id: str = ""
     kb_catalog_id: str = ""
     kb_actual_id: str = ""
+    chunking_strategy: str = ""
+    chunking_size: int | None = None
+    chunking_overlap: int | None = None
+    chunking_similarity_percentile_threshold: int | None = None
+    deployment_label: str = ""
+    merge_enabled: bool = False
     retrieval_mode: str = ""
+    effective_mode: str = ""
     candidate_count: int | None = None
     result_count: int | None = None
+    item_count: int | None = None
+    duplicates_removed: int | None = None
+    max_score: float | None = None
+    mean_score: float | None = None
+    min_score: float | None = None
     estimated_context_tokens: int | None = None
     retrieval_cost: dict[str, Any] = field(default_factory=dict)
     retrieval_fallback: bool = False
@@ -42,6 +60,18 @@ class JoinedRow:
     retrieval_judge_model: str = ""
     retrieval_judgment_artifact_id: str = ""
     retrieval_judge_cost: dict[str, Any] = field(default_factory=dict)
+    retrieval_scores: dict[str, int] = field(default_factory=dict)
+    retrieval_score_total: int | None = None
+    retrieval_judge_comment: str = ""
+    retrieval_parse_status: str = PARSE_NOT_CONFIGURED
+    retrieval_parse_error: str = ""
+    judged_source_count: int | None = None
+    judged_sources_relevant: int | None = None
+    judged_sources_partial: int | None = None
+    judged_sources_irrelevant: int | None = None
+    judged_relevance_ratio: float | None = None
+    judged_sources_status: str = PARSE_NOT_CONFIGURED
+    judged_sources_error: str = ""
     # Answer
     answer_artifact_id: str = ""
     answer_text: str = ""
@@ -58,6 +88,11 @@ class JoinedRow:
     answer_judge_model: str = ""
     answer_judgment_artifact_id: str = ""
     answer_judge_cost: dict[str, Any] = field(default_factory=dict)
+    answer_scores: dict[str, int] = field(default_factory=dict)
+    answer_score_total: int | None = None
+    answer_judge_comment: str = ""
+    answer_parse_status: str = PARSE_NOT_CONFIGURED
+    answer_parse_error: str = ""
     # Status
     status: str = "complete"
 
@@ -94,6 +129,10 @@ def join_lineage(
                 if not artifact_id:
                     continue
                 retrieval_sources[artifact_id] = art
+                metrics = art.get("objective_metrics", {})
+                metadata = art.get("retrieval_metadata", {})
+                chunking = art.get("kb_metadata", {}).get("chunking", {})
+                dedup = metadata.get("deduplication") or {}
                 rows.append(
                     JoinedRow(
                         question_id=art.get("question_id", ""),
@@ -101,13 +140,27 @@ def join_lineage(
                         retrieval_artifact_id=artifact_id,
                         kb_catalog_id=art.get("kb_catalog_id", ""),
                         kb_actual_id=art.get("kb_actual_id", ""),
+                        chunking_strategy=chunking.get("strategy", ""),
+                        chunking_size=chunking.get("size"),
+                        chunking_overlap=chunking.get("overlap"),
+                        chunking_similarity_percentile_threshold=chunking.get(
+                            "similarity_percentile_threshold"
+                        ),
+                        deployment_label=art.get("deployment_label", ""),
+                        merge_enabled=bool(art.get("merge_enabled", False)),
                         retrieval_mode=art.get("mode", ""),
+                        effective_mode=metadata.get("effective_mode", ""),
                         candidate_count=art.get("candidate_count"),
                         result_count=art.get("result_count"),
+                        item_count=metrics.get("item_count"),
+                        duplicates_removed=dedup.get("duplicatesRemoved"),
+                        max_score=metrics.get("max_score"),
+                        mean_score=metrics.get("mean_score"),
+                        min_score=metrics.get("min_score"),
                         estimated_context_tokens=art.get("estimated_context_tokens"),
                         retrieval_cost=art.get("cost", {}),
-                        retrieval_fallback=art.get("objective_metrics", {}).get(
-                            "has_fallback", False
+                        retrieval_fallback=bool(
+                            metadata.get("fallback_used", metrics.get("has_fallback", False))
                         ),
                         status="retrieval_only",
                     )
@@ -227,8 +280,52 @@ def _by_source(
     return result
 
 
-def render_csv(rows: list[JoinedRow]) -> str:
-    """Render joined rows as deterministic CSV."""
+def apply_scoring(rows: list[JoinedRow], specs: dict[str, ScoringSpec]) -> None:
+    """Derive structured scores from raw judge text, in place.
+
+    Raw text is never modified. Rows without judge text keep the not-configured
+    status so a missing judgment is distinguishable from a parse failure.
+    """
+    retrieval_spec = specs.get("retrieval_judgment")
+    answer_spec = specs.get("answer_judgment")
+    for row in rows:
+        if retrieval_spec is not None and row.retrieval_judgment_artifact_id:
+            parsed = parse_judgment(row.retrieval_judgment_text, retrieval_spec)
+            row.retrieval_scores = parsed.scores
+            row.retrieval_score_total = parsed.total
+            row.retrieval_judge_comment = parsed.comment
+            row.retrieval_parse_status = parsed.status
+            row.retrieval_parse_error = parsed.error
+            row.judged_source_count = parsed.sources.source_count
+            row.judged_sources_relevant = parsed.sources.relevant
+            row.judged_sources_partial = parsed.sources.partial
+            row.judged_sources_irrelevant = parsed.sources.irrelevant
+            row.judged_relevance_ratio = parsed.sources.ratio
+            row.judged_sources_status = parsed.sources.status
+            row.judged_sources_error = parsed.sources.error
+        if answer_spec is not None and row.answer_judgment_artifact_id:
+            parsed = parse_judgment(row.answer_judgment_text, answer_spec)
+            row.answer_scores = parsed.scores
+            row.answer_score_total = parsed.total
+            row.answer_judge_comment = parsed.comment
+            row.answer_parse_status = parsed.status
+            row.answer_parse_error = parsed.error
+
+
+def render_csv(rows: list[JoinedRow], specs: dict[str, ScoringSpec] | None = None) -> str:
+    """Render joined rows as deterministic CSV.
+
+    Text columns are not truncated: the CSV is the analysis source of truth and is
+    intended for a spreadsheet pivot.
+    """
+    specs = specs or {}
+    retrieval_criteria = (
+        list(specs["retrieval_judgment"].criteria) if "retrieval_judgment" in specs else []
+    )
+    answer_criteria = list(specs["answer_judgment"].criteria) if "answer_judgment" in specs else []
+    source_columns = bool(
+        "retrieval_judgment" in specs and specs["retrieval_judgment"].source_assessment_field
+    )
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -236,12 +333,45 @@ def render_csv(rows: list[JoinedRow]) -> str:
         "question_id",
         "question_text",
         "kb_catalog_id",
+        "kb_actual_id",
+        "chunking_strategy",
+        "chunking_size",
+        "chunking_overlap",
+        "chunking_similarity_percentile_threshold",
+        "deployment_label",
+        "merge_enabled",
         "retrieval_mode",
+        "effective_mode",
+        "retrieval_fallback",
         "candidate_count",
         "result_count",
+        "item_count",
+        "duplicates_removed",
+        "max_score",
+        "mean_score",
+        "min_score",
         "estimated_context_tokens",
-        "retrieval_fallback",
         "retrieval_judge_model",
+        *[f"retrieval_score_{name}" for name in retrieval_criteria],
+        *(["retrieval_score_total"] if retrieval_criteria else []),
+        *(
+            [
+                "judged_source_count",
+                "judged_sources_relevant",
+                "judged_sources_partial",
+                "judged_sources_irrelevant",
+                "judged_relevance_ratio",
+                "judged_sources_status",
+                "judged_sources_error",
+            ]
+            if source_columns
+            else []
+        ),
+        *(
+            ["retrieval_judge_comment", "retrieval_parse_status", "retrieval_parse_error"]
+            if retrieval_criteria
+            else []
+        ),
         "retrieval_judgment_text",
         "answer_model",
         "answer_text",
@@ -250,6 +380,13 @@ def render_csv(rows: list[JoinedRow]) -> str:
         "answer_total_tokens",
         "answer_latency_ms",
         "answer_judge_model",
+        *[f"answer_score_{name}" for name in answer_criteria],
+        *(["answer_score_total"] if answer_criteria else []),
+        *(
+            ["answer_judge_comment", "answer_parse_status", "answer_parse_error"]
+            if answer_criteria
+            else []
+        ),
         "answer_judgment_text",
         "status",
     ]
@@ -259,23 +396,83 @@ def render_csv(rows: list[JoinedRow]) -> str:
         writer.writerow(
             [
                 row.question_id,
-                row.question_text[:100],
+                row.question_text,
                 row.kb_catalog_id,
+                row.kb_actual_id,
+                row.chunking_strategy,
+                row.chunking_size,
+                row.chunking_overlap,
+                row.chunking_similarity_percentile_threshold,
+                row.deployment_label,
+                row.merge_enabled,
                 row.retrieval_mode,
+                row.effective_mode,
+                row.retrieval_fallback,
                 row.candidate_count,
                 row.result_count,
+                row.item_count,
+                row.duplicates_removed,
+                row.max_score,
+                row.mean_score,
+                row.min_score,
                 row.estimated_context_tokens,
-                row.retrieval_fallback,
                 row.retrieval_judge_model,
-                row.retrieval_judgment_text[:200],
+                *[row.retrieval_scores.get(name, "") for name in retrieval_criteria],
+                *(
+                    [row.retrieval_score_total if row.retrieval_score_total is not None else ""]
+                    if retrieval_criteria
+                    else []
+                ),
+                *(
+                    [
+                        row.judged_source_count if row.judged_source_count is not None else "",
+                        row.judged_sources_relevant
+                        if row.judged_sources_relevant is not None
+                        else "",
+                        row.judged_sources_partial
+                        if row.judged_sources_partial is not None
+                        else "",
+                        row.judged_sources_irrelevant
+                        if row.judged_sources_irrelevant is not None
+                        else "",
+                        row.judged_relevance_ratio
+                        if row.judged_relevance_ratio is not None
+                        else "",
+                        row.judged_sources_status,
+                        row.judged_sources_error,
+                    ]
+                    if source_columns
+                    else []
+                ),
+                *(
+                    [
+                        row.retrieval_judge_comment,
+                        row.retrieval_parse_status,
+                        row.retrieval_parse_error,
+                    ]
+                    if retrieval_criteria
+                    else []
+                ),
+                row.retrieval_judgment_text,
                 row.answer_model,
-                row.answer_text[:200],
+                row.answer_text,
                 row.answer_input_tokens,
                 row.answer_output_tokens,
                 row.answer_total_tokens,
                 row.answer_latency_ms,
                 row.answer_judge_model,
-                row.answer_judgment_text[:200],
+                *[row.answer_scores.get(name, "") for name in answer_criteria],
+                *(
+                    [row.answer_score_total if row.answer_score_total is not None else ""]
+                    if answer_criteria
+                    else []
+                ),
+                *(
+                    [row.answer_judge_comment, row.answer_parse_status, row.answer_parse_error]
+                    if answer_criteria
+                    else []
+                ),
+                row.answer_judgment_text,
                 row.status,
             ]
         )
@@ -283,8 +480,9 @@ def render_csv(rows: list[JoinedRow]) -> str:
     return output.getvalue()
 
 
-def render_markdown(rows: list[JoinedRow]) -> str:
+def render_markdown(rows: list[JoinedRow], specs: dict[str, ScoringSpec] | None = None) -> str:
     """Render joined rows as deterministic Markdown."""
+    specs = specs or {}
     lines = [
         "# Evaluation Report",
         "",
@@ -309,8 +507,9 @@ def render_markdown(rows: list[JoinedRow]) -> str:
         )
 
     lines.append("")
-    lines.append("## Cost Summary")
+    lines.extend(_render_configuration_summary(rows, specs))
     lines.append("")
+    lines.append("## Cost Summary")
 
     total_retrieval = sum(cost_dollars(r.retrieval_cost) for r in rows)
     total_answer = sum(cost_dollars(r.answer_cost) for r in rows)
@@ -326,6 +525,93 @@ def render_markdown(rows: list[JoinedRow]) -> str:
     lines.append("*Judge costs are evaluation infrastructure, not tested-system cost.*")
 
     return "\n".join(lines)
+
+
+def _mean(values: list[float]) -> str:
+    """Format a mean, or '-' when there is nothing to average."""
+    return f"{sum(values) / len(values):.2f}" if values else "-"
+
+
+def _render_configuration_summary(
+    rows: list[JoinedRow], specs: dict[str, ScoringSpec]
+) -> list[str]:
+    """Aggregate per knowledge base and retrieval mode.
+
+    Shows trade-offs only. It deliberately does not rank configurations or name a
+    winner: that decision belongs to the human reading the evidence.
+    """
+    criteria = list(specs["retrieval_judgment"].criteria) if "retrieval_judgment" in specs else []
+    groups: dict[tuple[str, str, str, bool], list[JoinedRow]] = {}
+    for row in rows:
+        if not row.kb_catalog_id:
+            continue
+        key = (row.kb_catalog_id, row.chunking_strategy, row.retrieval_mode, row.merge_enabled)
+        groups.setdefault(key, []).append(row)
+    if not groups:
+        return []
+
+    header = (
+        ["KB", "Chunking", "Mode", "Merge", "Rows"]
+        + [f"Mean {name}" for name in criteria]
+        + (["Mean total"] if criteria else [])
+        + ["Mean relevant-source ratio", "Mean est. tokens", "Mean rel. score"]
+        + ["Fallbacks", "Parse failures"]
+    )
+    lines = [
+        "## Configuration Summary",
+        "",
+        "| " + " | ".join(header) + " |",
+        "|" + "---|" * len(header),
+    ]
+    for key in sorted(groups):
+        kb, chunking, mode, merge = key
+        group = groups[key]
+        cells = [
+            _markdown_cell(kb),
+            _markdown_cell(chunking or "-"),
+            _markdown_cell(mode or "-"),
+            "yes" if merge else "no",
+            str(len(group)),
+        ]
+        for name in criteria:
+            cells.append(
+                _mean(
+                    [float(r.retrieval_scores[name]) for r in group if name in r.retrieval_scores]
+                )
+            )
+        if criteria:
+            cells.append(
+                _mean(
+                    [
+                        float(r.retrieval_score_total)
+                        for r in group
+                        if r.retrieval_score_total is not None
+                    ]
+                )
+            )
+        cells.append(
+            _mean([r.judged_relevance_ratio for r in group if r.judged_relevance_ratio is not None])
+        )
+        cells.append(
+            _mean(
+                [
+                    float(r.estimated_context_tokens)
+                    for r in group
+                    if r.estimated_context_tokens is not None
+                ]
+            )
+        )
+        cells.append(_mean([float(r.mean_score) for r in group if r.mean_score is not None]))
+        cells.append(str(sum(1 for r in group if r.retrieval_fallback)))
+        cells.append(str(sum(1 for r in group if r.retrieval_parse_status == PARSE_FAILED)))
+        lines.append("| " + " | ".join(cells) + " |")
+
+    lines.append("")
+    lines.append(
+        "*Estimated context tokens are informational and must not be treated as a quality score. "
+        "Relevance scores are not calibrated across differently chunked knowledge bases.*"
+    )
+    return lines
 
 
 def cost_dollars(value: Any) -> float:
@@ -355,6 +641,7 @@ def generate_report(
     answer_dataset_id: str | None = None,
     answer_judgment_dataset_id: str | None = None,
     output_format: str = "both",
+    scoring: dict[str, ScoringSpec] | None = None,
 ) -> dict[str, str]:
     """Generate CSV and Markdown reports. Returns dict of file paths."""
     rows = join_lineage(
@@ -364,15 +651,24 @@ def generate_report(
         answer_dataset_id,
         answer_judgment_dataset_id,
     )
+    specs = scoring or {}
+    apply_scoring(rows, specs)
 
     csv_path = output_dir / "report.csv"
     md_path = output_dir / "report.md"
 
     result = {"rows": str(len(rows))}
+    if specs:
+        failures = sum(
+            1
+            for row in rows
+            if PARSE_FAILED in (row.retrieval_parse_status, row.answer_parse_status)
+        )
+        result["parse_failures"] = str(failures)
     if output_format in {"both", "csv", "text", "json"}:
-        atomic_write_text(csv_path, render_csv(rows))
+        atomic_write_text(csv_path, render_csv(rows, specs))
         result["csv"] = str(csv_path)
     if output_format in {"both", "markdown", "text", "json"}:
-        atomic_write_text(md_path, render_markdown(rows))
+        atomic_write_text(md_path, render_markdown(rows, specs))
         result["markdown"] = str(md_path)
     return result

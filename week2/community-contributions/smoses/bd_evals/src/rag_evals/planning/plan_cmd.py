@@ -22,7 +22,6 @@ from rag_evals.config.schemas import (
 from rag_evals.config.validate_cmd import _find_project_root
 from rag_evals.errors import ConfigError, PlanError
 from rag_evals.planning.matrices import (
-    plan_ask_definition,
     plan_retrieval_definition,
 )
 
@@ -30,8 +29,13 @@ from rag_evals.planning.matrices import (
 def plan_definition(
     definition_path: Path,
     project_root: Path | None = None,
+    results_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Plan a definition and return a summary with dimensions, IDs, and call counts."""
+    """Plan a definition and return a summary with dimensions, IDs, and call counts.
+
+    Ask-stage definitions carry no question catalog: their questions come from the
+    source dataset, so ``results_root`` is required to plan them.
+    """
     if not definition_path.exists():
         raise ConfigError(f"Definition file not found: {definition_path}")
 
@@ -50,7 +54,7 @@ def plan_definition(
         definition,
         (RetrievalJudgmentDefinition, AnswerDefinition, AnswerJudgmentDefinition),
     ):
-        return _plan_ask(definition, resolved_data)
+        return _plan_ask(definition, definition_path, root, results_root)
     else:
         test_type = raw_data.get("test", {}).get("type", "unknown")
         raise PlanError(f"Planning not supported for definition type: {test_type}")
@@ -107,22 +111,71 @@ def _plan_retrieval(
 
 def _plan_ask(
     definition: RetrievalJudgmentDefinition | AnswerDefinition | AnswerJudgmentDefinition,
-    resolved_data: dict[str, Any],
+    definition_path: Path,
+    config_root: Path,
+    results_root: Path | None,
 ) -> dict[str, Any]:
-    """Plan an ask-stage definition."""
-    questions = QuestionCatalog.model_validate(resolved_data["questions"])
+    """Plan an ask-stage definition against its source dataset.
 
-    if isinstance(definition, AnswerDefinition):
-        models = ModelCatalog.model_validate(resolved_data["answer_models"])
-    else:
-        models = ModelCatalog.model_validate(resolved_data["judge_models"])
+    Questions and rubrics are rebuilt from the source dataset artifacts, and prompt
+    contents are resolved, so counts and artifact IDs match live execution.
+    """
+    from rag_evals.artifacts.lineage import load_source_dataset
+    from rag_evals.config.execution import load_execution_bundle
+    from rag_evals.config.schemas import Question, Rubric
+    from rag_evals.planning.matrices import generate_ask_matrix
 
-    matrix = plan_ask_definition(definition, questions, models)
+    if results_root is None:
+        raise PlanError(
+            "Planning an ask-stage definition requires the workspace results directory, "
+            "because its questions come from the source dataset."
+        )
+
+    source = definition.source_dataset
+    try:
+        descriptors = load_source_dataset(results_root, source.type, source.id)
+    except Exception as exc:
+        raise PlanError(
+            f"Cannot plan against source dataset {source.type}/{source.id}: {exc}"
+        ) from exc
+    if not descriptors:
+        raise PlanError(f"Source dataset has no artifacts: {source.type}/{source.id}")
+
+    bundle = load_execution_bundle(definition_path, config_root)
+    model_key = "answer_models" if isinstance(definition, AnswerDefinition) else "judge_models"
+    models = ModelCatalog.model_validate(bundle.resolved_definition[model_key])
+
+    by_question: dict[str, Question] = {}
+    for item in descriptors:
+        by_question.setdefault(
+            item.question_id,
+            Question(
+                id=item.question_id,
+                question=item.question_text,
+                rubric=Rubric.model_validate(item.rubric) if item.rubric else None,
+            ),
+        )
+    questions = QuestionCatalog(questions=list(by_question.values()))
+
+    matrix = generate_ask_matrix(
+        questions,
+        models,
+        definition.selection,
+        definition.prompt_variants,
+        definition.inference_variants,
+        source.type,
+        source.id,
+        model_selection_attr=model_key,
+        stage_label=definition.test.type,
+        source_artifacts=descriptors,
+        prompt_contents=dict(bundle.prompt_contents),
+    )
 
     return {
         "definition_type": definition.test.type,
         "test_id": definition.test.id,
         "dimensions": {
+            "source_artifacts": len(descriptors),
             "questions": len(matrix.selected_question_ids),
             "models": len(matrix.selected_model_ids),
             "prompt_variants": len(matrix.prompt_variant_ids),
@@ -158,10 +211,11 @@ def plan_and_report(
     definition_path: Path,
     output_format: str = "text",
     project_root: Path | None = None,
+    results_root: Path | None = None,
 ) -> None:
     """Plan a definition and print results."""
     try:
-        result = plan_definition(definition_path, project_root)
+        result = plan_definition(definition_path, project_root, results_root)
     except (ConfigError, PlanError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=ConfigError.exit_code) from exc

@@ -67,8 +67,14 @@ bd_evals_config_example/
     knowledge-bases.yaml
     answer-models.yaml
     judge-models.yaml
+    prompts/
+      retrieval-judge/
+        system.md
+        user.md
     definitions/
       retrieval-example.yaml
+      retrieval-judgment-example.yaml
+      report-example.yaml
   results/
     .gitkeep
 ```

@@ -259,6 +259,7 @@ def plan(
         definition_path,
         output_format=format,
         project_root=workspace.config_root,
+        results_root=workspace.results_root,
     )
 
 
@@ -504,6 +505,7 @@ def report(
     from rag_evals.config.resolver import safe_load_yaml
     from rag_evals.errors import ConfigError
     from rag_evals.reporting.reports import generate_report
+    from rag_evals.reporting.scoring import load_scoring_specs
 
     workspace = _require_workspace(ctx)
     definition_path = _resolve_definition(workspace, definition)
@@ -512,6 +514,7 @@ def report(
         raise typer.BadParameter("format must be csv, markdown, both, text, or json")
     datasets = data.get("datasets", {})
     try:
+        scoring = load_scoring_specs(data.get("scoring"))
         output_dir = workspace.resolve_report_output(Path(data.get("output_dir", "latest")))
     except ConfigError as exc:
         typer.echo(f"Error: {exc}", err=True)
@@ -524,6 +527,7 @@ def report(
         datasets.get("answers"),
         datasets.get("answer_judgments"),
         output_format=format,
+        scoring=scoring,
     )
     typer.echo(f"Report generated: {result}")
 

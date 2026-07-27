@@ -152,7 +152,82 @@ The following files ship in `bd_evals_config_example/config/`:
 | `config/knowledge-bases.yaml` | 3 placeholder KBs (fixed, semantic, none) |
 | `config/answer-models.yaml` | 2 placeholder answer models |
 | `config/judge-models.yaml` | 3 placeholder judge models |
+| `config/prompts/retrieval-judge/system.md` | Retrieval judge criteria, 1-5 anchored, JSON output |
+| `config/prompts/retrieval-judge/user.md` | Retrieval judge user message |
 | `config/definitions/retrieval-example.yaml` | Example retrieval definition |
+| `config/definitions/retrieval-judgment-example.yaml` | Example retrieval judgment definition |
+| `config/definitions/report-example.yaml` | Example report definition with scoring block |
 
 All placeholder values (`KB_REPLACE_ME_*`, `MODEL_REPLACE_ME_*`) validate and
 plan offline but are rejected by live execution.
+
+## Retrieval Judgment Definition
+
+```yaml
+schema_version: 1
+test:
+  id: retrieval-judgment-example
+  type: retrieval_judgment
+source_dataset:
+  type: retrieval
+  id: retrieval-example
+judge_models:
+  source: ../judge-models.yaml
+selection:
+  judge_models:
+    include: [judge_placeholder_1]
+prompt_variants:
+  - id: clinical_v1
+    template:
+      system_instructions: prompts/retrieval-judge/system.md
+      user_message: prompts/retrieval-judge/user.md
+inference_variants:
+  - id: deterministic
+    inference_config:
+      maxTokens: 2048
+      temperature: 0
+api:
+  base_url_env: BD_API_BASE_URL
+  api_key_env: BD_API_KEY
+output:
+  dataset_id: retrieval-judgment-example
+execution:
+  concurrency: 5
+  continue_on_error: true
+  retries:
+    maximum_attempts: 3
+```
+
+Calls equal source artifacts x judge models x prompt variants x inference
+variants. Template paths resolve relative to `<workspace>/config`. The retrieval
+judge template allowlist excludes knowledge base identity and retrieval mode, so
+standard and rerank artifacts are judged blind and compared afterwards in the
+report by grouping on `retrieval_mode`.
+
+**Verified:** `rag-evals validate definitions/retrieval-judgment-example.yaml`
+reports `Status: valid` with placeholder model warnings, and both prompt files
+resolve from disk and are content-hashed into the execution bundle.
+
+## Report Definition With Scoring
+
+```yaml
+datasets:
+  retrieval: retrieval-example
+  retrieval_judgments: retrieval-judgment-example
+output_dir: latest
+scoring:
+  retrieval_judgment:
+    parser: json
+    minimum: 1
+    maximum: 5
+    criteria:
+      - medical_safety
+      - answerability
+      - clinical_completeness
+      - context_integrity
+      - signal_density
+    comment_field: comments
+```
+
+Scores are parsed from immutable raw judge text at report time. See
+`cli-reference.md` for column behavior and parse-failure semantics.
