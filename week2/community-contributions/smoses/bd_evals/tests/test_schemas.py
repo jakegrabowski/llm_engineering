@@ -138,6 +138,46 @@ class TestKnowledgeBaseCatalog:
                 chunking={"strategy": "bad"},
             )
 
+    def test_semantic_accepts_similarity_percentile_threshold(self) -> None:
+        kb = KnowledgeBase(
+            id="kb1",
+            knowledge_base_id="KB",
+            chunking={"strategy": "semantic", "similarity_percentile_threshold": 96},
+        )
+        assert kb.chunking.similarity_percentile_threshold == 96
+
+    def test_similarity_percentile_threshold_rejected_for_fixed(self) -> None:
+        with pytest.raises(ValidationError, match="only to semantic"):
+            KnowledgeBase(
+                id="kb1",
+                knowledge_base_id="KB",
+                chunking={
+                    "strategy": "fixed",
+                    "size": 500,
+                    "similarity_percentile_threshold": 96,
+                },
+            )
+
+    @pytest.mark.parametrize("threshold", [0, 100])
+    def test_similarity_percentile_threshold_out_of_range(self, threshold: int) -> None:
+        with pytest.raises(ValidationError, match="between 1 and 99"):
+            KnowledgeBase(
+                id="kb1",
+                knowledge_base_id="KB",
+                chunking={
+                    "strategy": "semantic",
+                    "similarity_percentile_threshold": threshold,
+                },
+            )
+
+    def test_unknown_chunking_field_still_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            KnowledgeBase(
+                id="kb1",
+                knowledge_base_id="KB",
+                chunking={"strategy": "semantic", "similarity_percentil": 96},
+            )
+
     def test_placeholder_detection(self) -> None:
         kb = KnowledgeBase(
             id="kb1",
@@ -162,6 +202,36 @@ class TestKnowledgeBaseCatalog:
                     {"id": "kb1", "knowledge_base_id": "KB2", "chunking": {"strategy": "none"}},
                 ]
             )
+
+    def test_catalog_duplicate_knowledge_base_ids(self) -> None:
+        with pytest.raises(ValidationError, match="Duplicate knowledge_base_id"):
+            KnowledgeBaseCatalog(
+                knowledge_bases=[
+                    {"id": "kb1", "knowledge_base_id": "SAME", "chunking": {"strategy": "none"}},
+                    {
+                        "id": "kb2",
+                        "knowledge_base_id": "SAME",
+                        "chunking": {"strategy": "semantic"},
+                    },
+                ]
+            )
+
+    def test_catalog_allows_repeated_placeholders(self) -> None:
+        catalog = KnowledgeBaseCatalog(
+            knowledge_bases=[
+                {
+                    "id": "kb1",
+                    "knowledge_base_id": "KB_REPLACE_ME_1",
+                    "chunking": {"strategy": "none"},
+                },
+                {
+                    "id": "kb2",
+                    "knowledge_base_id": "KB_REPLACE_ME_1",
+                    "chunking": {"strategy": "semantic"},
+                },
+            ]
+        )
+        assert len(catalog.knowledge_bases) == 2
 
 
 # ---------------------------------------------------------------------------

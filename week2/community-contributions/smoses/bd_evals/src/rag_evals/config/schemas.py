@@ -100,11 +100,17 @@ class QuestionCatalog(_StrictModel):
 
 
 class ChunkingConfig(_StrictModel):
-    """Chunking strategy metadata for a Knowledge Base."""
+    """Chunking strategy metadata for a Knowledge Base.
+
+    These values are descriptive provenance recorded with every artifact. They are
+    never sent to the API, which receives only the Knowledge Base ID, retrieval
+    mode, and counts. ``overlap`` is a percentage for fixed-size chunking.
+    """
 
     strategy: str = Field(pattern=f"^({'|'.join(_CHUNKING_STRATEGIES)})$")
     size: int | None = None
     overlap: int | None = None
+    similarity_percentile_threshold: int | None = None
 
     @model_validator(mode="after")
     def _validate_strategy_fields(self) -> ChunkingConfig:
@@ -114,6 +120,13 @@ class ChunkingConfig(_StrictModel):
             raise ValueError("Chunking 'size' must be >= 1")
         if self.overlap is not None and self.overlap < 0:
             raise ValueError("Chunking 'overlap' must be >= 0")
+        if self.similarity_percentile_threshold is not None:
+            if self.strategy != "semantic":
+                raise ValueError(
+                    "'similarity_percentile_threshold' applies only to semantic chunking"
+                )
+            if not 1 <= self.similarity_percentile_threshold <= 99:
+                raise ValueError("'similarity_percentile_threshold' must be between 1 and 99")
         return self
 
 
@@ -143,6 +156,13 @@ class KnowledgeBaseCatalog(_StrictModel):
         dupes = _find_duplicates(ids)
         if dupes:
             raise ValueError(f"Duplicate knowledge base IDs: {sorted(dupes)}")
+        actual = [kb.knowledge_base_id for kb in self.knowledge_bases if not kb.is_placeholder]
+        actual_dupes = _find_duplicates(actual)
+        if actual_dupes:
+            raise ValueError(
+                "Duplicate knowledge_base_id values make comparison meaningless: "
+                f"{sorted(actual_dupes)}"
+            )
         return self
 
 

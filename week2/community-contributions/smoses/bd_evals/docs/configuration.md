@@ -56,8 +56,8 @@ Rubrics are optional and extensible (model uses `extra="allow"`). Known fields
 are `expected_answer`, `required_facts`, `expected_sources`,
 `unacceptable_claims`, and `notes`. No score fields are predefined.
 
-The provided 92-question JSON source is represented in an example YAML catalog
-as `q001` through `q092`, preserving order and exact text.
+The provided question JSON source contains 91 questions and is represented in a
+workspace YAML catalog as `q001` through `q091`, preserving order and exact text.
 
 **Verified:** `QuestionCatalog` and `Question` in
 `src/rag_evals/config/schemas.py`. Tests in `tests/test_schemas.py`.
@@ -94,9 +94,17 @@ knowledge_bases:
 Placeholder values may validate and plan offline but are rejected by live
 execution.
 
+Chunking fields are descriptive provenance recorded with every artifact; they are
+never sent to the API. For fixed-size chunking, `overlap` is a percentage. Semantic
+chunking additionally accepts `similarity_percentile_threshold` (1-99), which is
+rejected for other strategies. Unknown chunking fields remain a validation error.
+
 **Verified:** `KnowledgeBaseCatalog` and `KnowledgeBase` in
 `src/rag_evals/config/schemas.py`. The `is_placeholder` property detects
-`KB_REPLACE_ME_*` prefixes. Tests in `tests/test_schemas.py`.
+`KB_REPLACE_ME_*` prefixes. Catalog `id` values must be unique, and two entries
+may not declare the same non-placeholder `knowledge_base_id`, because that would
+compare a Knowledge Base against itself. Repeated placeholders remain allowed for
+offline examples. Tests in `tests/test_schemas.py`.
 
 ## Models
 
