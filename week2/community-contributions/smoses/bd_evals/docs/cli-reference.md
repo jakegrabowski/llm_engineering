@@ -140,6 +140,41 @@ Counts and the ratio are then computed in code, not by the judge, and reported a
 enumeration sets `judged_sources_status` to `failed` with `judged_sources_error`,
 leaves the ratio empty, and does not affect criterion scores.
 
+#### Markdown output
+
+`report.md` contains one row per judged artifact, a `## Configuration Summary`
+table, and a `## Cost Summary` separating tested-system from evaluation cost.
+
+The configuration summary groups rows by knowledge base, chunking strategy,
+retrieval mode, and merge state, then averages within each group:
+
+| Column | Meaning |
+|---|---|
+| `Rows` | judged artifacts in the group |
+| `Mean <criterion>` | mean judge score for each declared criterion |
+| `Mean total` | mean of the code-computed criterion sum |
+| `Mean relevant-source ratio` | mean `judged_relevance_ratio`, so 0.53 means about 53% of retrieved sources were useful with partials counted as half |
+| `Mean est. tokens` | mean `estimated_context_tokens`, informational only |
+| `Mean rel. score` | mean API relevance score |
+| `Fallbacks` | rows where retrieval reported a mode fallback |
+| `Parse failures` | rows whose judge output did not yield valid scores |
+
+Rows lacking a value are skipped rather than counted as zero, and a group with no
+values shows `-`.
+
+The summary reports trade-offs only. It does not rank configurations or name a
+winner, per RD013.
+
+Two comparisons the numbers do not support:
+
+- **API relevance scores are not comparable across retrieval modes.** Standard
+  scores come from embedding similarity and rerank scores from a rerank model, so
+  they are different scales. They are also not calibrated across differently chunked
+  knowledge bases. Compare them only within one mode and one knowledge base.
+- **The relevant-source ratio ignores rank order.** Returning the same sources in a
+  better order produces an identical ratio, so the ratio under-credits reranking,
+  whose main benefit is ordering.
+
 ### status
 
 ```bash

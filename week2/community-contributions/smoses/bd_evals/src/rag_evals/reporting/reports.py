@@ -609,7 +609,10 @@ def _render_configuration_summary(
     lines.append("")
     lines.append(
         "*Estimated context tokens are informational and must not be treated as a quality score. "
-        "Relevance scores are not calibrated across differently chunked knowledge bases.*"
+        "API relevance scores are not calibrated across differently chunked knowledge bases, and "
+        "are not comparable across retrieval modes because standard and rerank scores come from "
+        "different models. The relevant-source ratio counts partial sources as half and ignores "
+        "rank order, so it under-credits reranking.*"
     )
     return lines
 
