@@ -20,7 +20,7 @@ knowledge_bases:
       overlap: 20
     supports_merge_eval: true
   - id: kb_semantic_512
-    knowledge_base_id: IANVTI0BZA
+    knowledge_base_id: 060K6HN65X
     description: semantic 512
     chunking:
       strategy: semantic
@@ -28,7 +28,7 @@ knowledge_bases:
       similarity_percentile_threshold: 96
     supports_merge_eval: true
   - id: kb_semantic_1024
-    knowledge_base_id: 4YMT5SS8LB
+    knowledge_base_id: FVVJSHNEZZ
     description: semantic 1024
     chunking:
       strategy: semantic
